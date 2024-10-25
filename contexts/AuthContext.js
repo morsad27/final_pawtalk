@@ -9,8 +9,8 @@ export const  AuthProvider = ({children}) =>{
         setUser(authUser);
     }
 
-    const setUserData = useData => {
-        setUser({...useData});
+    const setUserData = userData => {
+        setUser({...userData});
     }
 
     return(

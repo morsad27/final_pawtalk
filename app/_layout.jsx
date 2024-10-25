@@ -1,72 +1,75 @@
-import { LogBox, StyleSheet, Text, View } from 'react-native'
-import React, { useEffect } from 'react' 
-import { Stack, useRouter } from 'expo-router'
-import { AuthProvider, useAuth } from '../contexts/AuthContext'
-import { supabase } from '../lib/supabase'
-import { getUserData } from '../services/userService'
-import {useFonts } from "expo-font"
+import { LogBox, StyleSheet } from 'react-native';
+import React, { useEffect } from 'react'; 
+import { Stack, useRouter } from 'expo-router';
+import { AuthProvider, useAuth } from '../contexts/AuthContext';
+import { supabase } from '../lib/supabase';
+import { getUserData } from '../services/userService';
+import { useFonts } from "expo-font";
 
-LogBox.ignoreLogs(['Warning: TNodeChildrenRenderer', 'Warning: MemoizedTNodeRenderer','Warning: TRenderEngineProvider'])
-const _layout =()=>{
+LogBox.ignoreLogs(['Warning: TNodeChildrenRenderer', 'Warning: MemoizedTNodeRenderer', 'Warning: TRenderEngineProvider']);
+
+const _layout = () => {
   return (
     <AuthProvider>
-      <MainLayout/>
+      <MainLayout />
     </AuthProvider>
-  )
-}
+  );
+};
+
 const MainLayout = () => {
-  const { setAuth,setUserData } = useAuth();
+  const { setAuth, setUserData } = useAuth();
   const router = useRouter();
 
   useFonts({
-    'regular':require('./../assets/fonts/LTSaeada-Regular.otf'),
-    'medium':require('./../assets/fonts/LTSaeada-Medium.otf'),
-    'bold':require('./../assets/fonts/LTSaeada-Bold.otf'),
-  })
+    'regular': require('./../assets/fonts/LTSaeada-Regular.otf'),
+    'medium': require('./../assets/fonts/LTSaeada-Medium.otf'),
+    'bold': require('./../assets/fonts/LTSaeada-Bold.otf'),
+  });
 
-  useEffect(()=>{
-    
-    supabase.auth.onAuthStateChange((_event, session) => {
-      //console.log('session user:', session?.user?.id);
+  useEffect(() => {
+    const unsubscribe = supabase.auth.onAuthStateChange((_event, session) => {
+      if (session) {
+        setAuth(session?.user);
+        updatedUserData(session?.user, session?.user?.email);
+        router.replace('/(tabs)/home'); // Move to home screen
+      } else {
+        setAuth(null);
+        router.replace('/welcome'); // Move to welcome screen
+      }
+    });
 
-      if(session){
-        //set auth
-      setAuth(session?.user);
-      updatedUserData(session?.user, session?.user?.email);
-    
-      router.replace('/(tabs)/home')
-        //move to home scree
-    }else{
-        //set auth null
-     setAuth(null);
-    router.replace('/welcome')
-     //   //move to welcome screen
-   }
-  })
-      
-  },[]);
-  const updatedUserData = async (user, email) =>{
+    // Cleanup the subscription on unmount
+    return () => unsubscribe();
+  }, []);
+
+  const updatedUserData = async (user, email) => {
     let res = await getUserData(user?.id);
-    if(res.success) setUserData({...res.data, email});
+    if (res.success) setUserData({ ...res.data, email });
+  };
 
-  }
   return (
-    
-<Stack
-  screenOptions={{
-  headerShown: false
-}}
->
-<Stack.Screen
-      name="(main)/postDetails"
-      options={{
-      presentation: 'modal'
-  }}
-/>
-</Stack>
-  )
-}
+    <Stack
+      screenOptions={{
+        headerShown: false, // Hide the header by default
+      }}
+    >
+      <Stack.Screen
+        name="chat/index" // Reference to chat screen
+        options={{
+          headerShown: true, // Show header on ChatScreen
+        }}
+      />
+      <Stack.Screen
+        name="pet-details/index" // Reference to pet-details screen
+        options={{
+          headerShown: true, // Show header on PetDetails
+        }}
+      />
+      {/* Include other screens as needed */}
+    </Stack>
+  );
+};
 
-export default _layout
+export default _layout;
 
-const styles = StyleSheet.create({})
+const styles = StyleSheet.create({});

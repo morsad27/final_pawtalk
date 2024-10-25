@@ -31,25 +31,46 @@ export const  createOrUpdatePost = async (post) => {
     }
 }
 
-export const  fetchPosts = async (limit=10) => {
+export const  fetchPosts = async (limit=10, userId) => {
     try{ 
-       const {data, error} = await supabase
-       .from('posts')
-       .select(`
-            *,
-           user: users (id, name, image),
-           postLikes (*),
-           comments (count)
-        `)
-       .order('created_at', {ascending:false})
-       .limit(limit);
-
-       if(error){
-        console.log('fetchPosts error:', error);
-        return {success: false, msg: 'Could not fetch the posts'};
-       }
-
-       return{success: true, data:data};
+      if(userId){
+        const {data, error} = await supabase
+        .from('posts')
+        .select(`
+             *,
+            user: users (id, name, image),
+            postLikes (*),
+            comments (count)
+         `)
+        .order('created_at', {ascending:false})
+        .eq('userId', userId)
+        .limit(limit);
+ 
+        if(error){
+         console.log('fetchPosts error:', error);
+         return {success: false, msg: 'Could not fetch the posts'};
+        }
+ 
+        return{success: true, data:data};
+      }else{
+        const {data, error} = await supabase
+        .from('posts')
+        .select(`
+             *,
+            user: users (id, name, image),
+            postLikes (*),
+            comments (count)
+         `)
+        .order('created_at', {ascending:false})
+        .limit(limit);
+ 
+        if(error){
+         console.log('fetchPosts error:', error);
+         return {success: false, msg: 'Could not fetch the posts'};
+        }
+ 
+        return{success: true, data:data};
+      }
        
     } catch (error) {
         console.log('fetchPosts error:', error);
@@ -175,3 +196,118 @@ export const  removePost = async (postId) => {
         return {success: false, msg: 'Could not remove the post'};
     }
 }
+
+export const  fetchBanner = async () => {
+    try{ 
+       const {data,error} = await supabase
+       .from ('banner')
+       .select()
+       
+       if(error){
+        console.log('banner error:', error);
+        return {success: false, msg: 'Could not display banner'};
+       }
+
+       return{success: true, data:data};
+       
+    } catch (error) {
+        console.log('comment error:', error);
+        return {success: false, msg: 'Could not display banner'};
+    }
+}
+
+export const  fetchCategory = async () => {
+    try{ 
+       const {data,error} = await supabase
+       .from ('category')
+       .select()
+       
+       if(error){
+        console.log('category error:', error);
+        return {success: false, msg: 'Could not display category'};
+       }
+
+       return{success: true, data:data};
+       
+    } catch (error) {
+        console.log('comment error:', error);
+        return {success: false, msg: 'Could not display category'};
+    }
+}
+
+export const getPetCategory = async (category) => {
+    try {
+      
+      const { data, error } = await supabase
+        .from('pets')                 
+        .select('*')                 
+        .eq('category', category);  
+  
+      if (error) {
+        console.error('Error fetching pets by category:', error);
+        return { success: false, msg: 'Could not fetch pets in category' };
+      }
+  
+      console.log('Fetched pets in category:', data);  
+      return { success: true, data: data };
+  
+    } catch (err) {
+      console.error('Unexpected error:', err);  
+      return { success: false, msg: 'Unexpected error occurred' };
+    }
+  };
+
+  export const InsertPet = async (petData) => {
+    
+    const { name, category, breed, age, sex, weight, address, about,file, username, email,userImage } = petData;
+
+    try {
+        // Insert new pet into the pets table
+        const { data, error } = await supabase
+            .from('pets')
+            .insert([{
+                name,
+                category,
+                breed,
+                age,
+                sex,
+                weight,
+                address,
+                about,
+                file,
+                username,
+                email,
+                userImage
+            }]);
+
+        
+        if (error) {
+            throw new Error(error.message); 
+        }
+
+        return { success: true, data: data }; 
+    } catch (error) {
+        console.error('Error creating pet:', error);
+        return { success: false, msg: error.message }; 
+    }
+};
+  
+export const GetUserDetails = async (id, currentUserEmail) => {
+    try {
+      const { data, error } = await supabase
+        .from('chat') // Ensure this matches the chat table name
+        .select('*')
+        .eq('id', id)
+        .or(`email1.eq.${currentUserEmail},email2.eq.${currentUserEmail}`); // Exclude current user's email
+  
+      if (error || !data || data.length === 0) {
+        console.error('Error fetching chat details:', error);
+        return { success: false, data: null };
+      }
+  
+      return { success: true, data: data[0] }; // Return the fetched data if successful
+    } catch (err) {
+      console.error('Fetch error:', err);
+      return { success: false, data: null };
+    }
+  };

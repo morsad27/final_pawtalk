@@ -122,7 +122,7 @@ const NewPost = () => {
   return (
     <ScreenWrapper bg ="white">
       <View style= {styles.container}>
-        <Header title = "Create Post"/>
+        <Header title = {post && post.id? "Update Post": "Create Post" }/>
         <ScrollView contentContainerStyle={{gap:20}}>
             {/* avatar */}
               <View style ={styles.header}>
