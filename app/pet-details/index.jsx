@@ -27,10 +27,13 @@ export default function PetDetails() {
         if (chatId) {
             router.push({
                 pathname: '/chat',
-                params: { id: chatId }, // Navigate to chat with the specific ID
+                params: { id: chatId }, 
             });
         }
     };
+
+    
+    const isOwner = user && pet.email && user.email === pet.email;
 
     return (
         <View>
@@ -39,23 +42,25 @@ export default function PetDetails() {
                 <PetInfo pet={pet} />
                 {/* Pet properties */}
                 <PetSubInfo pet={pet} />
-                {/* about */}
+                {/* About */}
                 <AboutPet pet={pet} />
-                {/* owner details */}
+                {/* Owner details */}
                 <OwnerInfo pet={pet} />
                 <View style={{ height: 70 }}></View>
             </ScrollView>
 
-            {/* adopt button */}
-            <View style={styles.bottomContainer}>
-                <TouchableOpacity onPress={handleInitiateChat} style={styles.adoptBtn}>
-                    <Text style={{
-                        textAlign: 'center',
-                        fontFamily: 'medium',
-                        fontSize: 20
-                    }}>Adopt Me</Text>
-                </TouchableOpacity>
-            </View>
+            {/* Adopt button - Show only if the current user is NOT the owner */}
+            {!isOwner && (
+                <View style={styles.bottomContainer}>
+                    <TouchableOpacity onPress={handleInitiateChat} style={styles.adoptBtn}>
+                        <Text style={{
+                            textAlign: 'center',
+                            fontFamily: 'medium',
+                            fontSize: 20
+                        }}>Adopt Me</Text>
+                    </TouchableOpacity>
+                </View>
+            )}
         </View>
     );
 }
