@@ -31,6 +31,8 @@ export const initiateChat = async (user, pet) => {
                     email2: pet?.email,
                     image2: pet?.userImage,
                     name2: pet?.username,
+                    userIds: [user?.email, pet?.email],
+                   
                 },
             ]);
 

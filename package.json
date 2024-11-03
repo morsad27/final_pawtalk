@@ -20,7 +20,7 @@
     "@react-native-picker/picker": "2.7.5",
     "@react-navigation/native": "^6.0.2",
     "@rneui/themed": "^4.0.0-rc.8",
-    "@supabase/supabase-js": "^2.45.4",
+    "@supabase/supabase-js": "^2.46.1",
     "base64-arraybuffer": "^1.0.2",
     "expo": "~51.0.28",
     "expo-av": "~14.0.7",

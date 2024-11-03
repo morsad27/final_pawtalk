@@ -47,7 +47,7 @@ const EditProfile = () => {
 
     if (!result.canceled) {
       // Set the image URI directly
-      setUser({ ...user, image: result.assets[0].uri });
+      setUser(prevUser => ({ ...prevUser, image: result.assets[0].uri }));
     }
   };
 
@@ -74,7 +74,7 @@ const EditProfile = () => {
       if (imageRes.success) {
         userData.image = imageRes.data;  // Set the image path returned from Supabase
       } else {
-        userData.image = null;  // Handle failure
+        userData.image = null;  
         Alert.alert('Image Upload', imageRes.msg || 'Failed to upload image');
       }
     }
@@ -92,9 +92,6 @@ const EditProfile = () => {
     }
   };
 
-  // Use the user.image directly to render the Avatar
-  let imageSource = user.image && typeof user.image == 'object' ? user.image.uri : getUserImageSrc(user.image);
-
   return (
     <ScreenWrapper>
       <View style={styles.container}>
@@ -106,7 +103,7 @@ const EditProfile = () => {
             {/* Avatar */}
             <View style={styles.avatarContainer}>
               <Avatar
-                uri={user?.image} 
+                uri={user.image} 
                 size={hp(12)} 
                 rounded={theme.radius.sm} 
                 style={{ borderWidth: 2 }} 
@@ -122,26 +119,26 @@ const EditProfile = () => {
               icon={<Icon name="user" />}
               placeholder="Enter your name"
               value={user.name}
-              onChangeText={value => setUser({ ...user, name: value })}
+              onChangeText={value => setUser(prevUser => ({ ...prevUser, name: value }))}
             />
             <Input
               icon={<Icon name="call" />}
               placeholder="Enter your phone number"
               value={user.phoneNumber}
-              onChangeText={value => setUser({ ...user, phoneNumber: value })}
+              onChangeText={value => setUser(prevUser => ({ ...prevUser, phoneNumber: value }))}
             />
             <Input
               icon={<Icon name="location" />}
               placeholder="Enter your address"
               value={user.address}
-              onChangeText={value => setUser({ ...user, address: value })}
+              onChangeText={value => setUser(prevUser => ({ ...prevUser, address: value }))}
             />
             <Input
               placeholder="Enter your bio"
               value={user.bio}
               multiline={true}
               containerStyle={styles.bio}
-              onChangeText={value => setUser({ ...user, bio: value })}
+              onChangeText={value => setUser(prevUser => ({ ...prevUser, bio: value }))}
             />
             <Button title="Update" loading={loading} onPress={onSubmit} />
           </View> 
