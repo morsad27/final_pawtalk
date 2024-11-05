@@ -3,6 +3,7 @@ import React from 'react';
 import Colors from '../../constants/Colors';
 import {useRouter} from 'expo-router';
 import { getSupabaseFileUrl } from '../../services/imageService';
+import MarkFav from '../MarkFav';
 
 export default function PetListItem({ pet }) {
   const router = useRouter();
@@ -20,6 +21,15 @@ export default function PetListItem({ pet }) {
         marginTop: 20
       }}
     >
+      <View style={{
+        position:'absolute',
+        zIndex:10,
+        right: 10,
+        top: 10
+      }}>
+        
+      </View>
+
       <Image
             source={getSupabaseFileUrl(pet?.file)}
         style={{

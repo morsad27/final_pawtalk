@@ -5,6 +5,7 @@ import Colors from '../../constants/Colors';
 import Icon from '../../assets/icons';
 import { hp } from '../../helpers/common';
 import { theme } from '../../constants/theme';
+import MarkFav from '../MarkFav';
 
 export default function PetInfo({pet}) {
   return (
@@ -37,7 +38,7 @@ export default function PetInfo({pet}) {
             color: Colors.GRAY
           }}>{pet?.address}</Text>
         </View>
-        <Icon name ="heart" size={hp(4)} strokeWidth={2} color={theme.colors.text}/>
+        <MarkFav pet={pet}/>
       </View>
     </View>
   )

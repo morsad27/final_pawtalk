@@ -27,10 +27,10 @@ const MainLayout = () => {
   });
 
   useEffect(() => {
-    const unsubscribe = supabase.auth.onAuthStateChange((_event, session) => {
+    const { data: subscription } = supabase.auth.onAuthStateChange((_event, session) => {
       if (session) {
-        setAuth(session?.user);
-        updatedUserData(session?.user, session?.user?.email);
+        setAuth(session.user);
+        updatedUserData(session.user, session.user.email);
         router.replace('/(tabs)/home'); // Move to home screen
       } else {
         setAuth(null);
@@ -39,11 +39,11 @@ const MainLayout = () => {
     });
 
     // Cleanup the subscription on unmount
-    return () => unsubscribe();
+    return () => subscription.unsubscribe();
   }, []);
 
   const updatedUserData = async (user, email) => {
-    let res = await getUserData(user?.id);
+    let res = await getUserData(user.id);
     if (res.success) setUserData({ ...res.data, email });
   };
 
