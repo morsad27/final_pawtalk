@@ -65,6 +65,12 @@ const MainLayout = () => {
           headerShown: true, // Show header on PetDetails
         }}
       />
+       <Stack.Screen
+        name="user-post/index" // Reference to pet-details screen
+        options={{
+          headerShown: true, // Show header on PetDetails
+        }}
+      />
       {/* Include other screens as needed */}
     </Stack>
   );
