@@ -15,6 +15,7 @@ import Loading from '../../components/Loading'
 import { getUserData } from '../../services/userService'
 import MaterialIcons from '@expo/vector-icons/MaterialIcons';
 import Colors from '../../constants/Colors'
+import Ionicons from '@expo/vector-icons/Ionicons';
 
 var limit =  0;
 const Profile = () => {
@@ -112,7 +113,7 @@ const Profile = () => {
     };
 
     return (
-        <ScreenWrapper bg='white'>
+        <ScreenWrapper >
             {/* Update: Correctly passing router prop */}
             <FlatList
           data={posts}
@@ -152,11 +153,29 @@ const Profile = () => {
 
 // UserHeader component to display user information
 const UserHeader = ({ user, router, handleLogout }) => {
-    // Debug log to check if router is defined
-    //console.log('Router:', router); // Log the router object for debugging
+
+    const onPressMenu=(menu)=>{
+        router.push(menu.path)
+    }
+    const Menu=[
+        {
+            id: 1,
+            name: 'Add New Pet',
+            icon: 'add-circle',
+            path: '/add-new-pet'
+        },
+        
+        {
+            id: 2,
+            name: 'My Post',
+            icon: 'bookmark',
+            path: '/../user-post'
+        }
+    ]
+
 
     return (
-        <View style={{ flex: 1, backgroundColor: 'white', paddingHorizontal: wp(4) }}>
+        <View style={{ flex: 1,  paddingHorizontal: wp(4) }}>
             <View>
                 <Header title="Profile" mb={30} />
                 <TouchableOpacity style={styles.logoutButton} onPress={handleLogout}>
@@ -204,14 +223,41 @@ const UserHeader = ({ user, router, handleLogout }) => {
                         )}
                         
                     </View>
-                    <Link href ={'/add-new-pet'} style={styles.addNewPetContainer}>
-                        <MaterialIcons name="pets" size={24} color={Colors.PRIMARY} />
-                            <Text style={{
-                                fontFamily: 'medium',
-                                color:Colors.PRIMARY,
-                                fontSize:18
-                            }}>Add new pet</Text>
-                    </Link>
+                        
+                   <FlatList
+                   data={Menu}
+                   renderItem={({item,index})=>(
+                    <TouchableOpacity 
+                    onPress={()=>onPressMenu(item)}
+                    key={index}
+                    style={{
+                        marginVertical: 10,
+                        display: 'flex',
+                        flexDirection: 'row',
+                        alignItems: 'center',
+                        backgroundColor: Colors.WHITE,
+                        gap: 10,
+                        
+                        padding: 10,
+                        borderRadius: 10
+                    }}>
+                        <Ionicons name={item?.icon} size={30} 
+                        color={Colors.PRIMARY} 
+                        style={{
+                            padding: 10,
+                            backgroundColor: Colors.LIGHT_PRIMARY,
+                            borderRadius: 10
+                        }}
+                        
+                        />
+                        <Text style={{
+                            fontFamily: 'regular',
+                            fontSize: 20
+                        }}>{item.name}</Text>
+                    </TouchableOpacity>
+                   )}
+                   />
+                    
                 </View>
             </View>
         </View>
