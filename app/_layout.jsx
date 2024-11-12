@@ -27,6 +27,7 @@ const MainLayout = () => {
   });
 
   useEffect(() => {
+    // Call onAuthStateChange and get the subscription object or function
     const { data: subscription } = supabase.auth.onAuthStateChange((_event, session) => {
       if (session) {
         setAuth(session.user);
@@ -37,11 +38,17 @@ const MainLayout = () => {
         router.replace('/welcome'); // Move to welcome screen
       }
     });
-
+  
     // Cleanup the subscription on unmount
-    return () => subscription.unsubscribe();
+    return () => {
+      if (typeof subscription === 'function') {
+        subscription(); // Directly call if it's a function
+      } else if (subscription?.unsubscribe) {
+        subscription.unsubscribe(); // Otherwise, call unsubscribe if it exists
+      }
+    };
   }, []);
-
+  
   const updatedUserData = async (user, email) => {
     let res = await getUserData(user.id);
     if (res.success) setUserData({ ...res.data, email });

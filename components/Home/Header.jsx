@@ -7,7 +7,7 @@ import { useRouter } from 'expo-router';
 
 
 const Header = () => {
-    const { user, setAuth } = useAuth();
+    const { user } = useAuth();
     const router  = useRouter()
   return (
     <View style={{
@@ -28,7 +28,7 @@ const Header = () => {
         </View>
         <Pressable onPress={()=> router.push('profile')}>
         <Avatar
-             uri={user?.image} // Using optional chaining to avoid errors
+             uri={user?.image}
              style={{
                 width: 40,
                 height: 40
