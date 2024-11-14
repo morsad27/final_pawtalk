@@ -55,14 +55,52 @@ const Home = () => {
   };
 
   const handlePostEvent = async (payload) => {
-    // Same as your original function to handle post events
-  };
+    console.log('payload:', payload)
+    if(payload.eventType == 'INSERT' &&  payload?.new?.id){
+      let newPost = {...payload.new};
+      let res = await getUserData(newPost.userId);
+      newPost.postLikes =[];
+      newPost.comments = [{count:0}]
+      newPost.user = res.success? res.data : {};
+      setPosts(prevPosts=>[newPost, ...prevPosts]);
+    }
+    if(payload.eventType=='DELETE' && payload.old.id){
+      setPosts(prevPosts=>{
+        let updatedPosts = prevPosts.filter(post=> post.id!=payload.old.id);
+        return updatedPosts;
+      })
 
-  const handleNewNotification = async (payload) => {
-    // Same as your original function to handle notifications
-  };
+      
+    }
+    //POSSIBLE NA PWEDENG PAGKUHAAN NG UPDATE NG LIKE BUTTON OR COMMENT SA NEWSFEED------------------------------------------------------------------------------
+    if(payload.eventType == 'UPDATE' &&  payload?.new?.id){
+      setPosts(prevPosts=>{
+        let updatedPosts = prevPosts.map(post=>{
+          if(post.id == payload.new.id){
+            post.body = payload.new.body;;
+            post.file = payload.new.file; 
+          }
+          return post;
+        });
+        return updatedPosts;
+      })
+      
+    }
+    
+    //console.log('got post event:', payload);
+  }
+
+
+  const handleNewNotification = async (payload)=>{
+    console.log('got new notification:', payload);
+    if(payload.eventType == 'INSERT' && payload.new.id){
+      setNotificationCount(prev=> prev+1);
+    }
+  }
+
 
   useEffect(() => {
+    // console.log("Subscribing to Supabase channels");
     let postChannel = supabase
       .channel('posts')
       .on('postgres_changes', { event: '*', schema: 'public', table: 'posts' }, handlePostEvent)
@@ -131,6 +169,7 @@ const Home = () => {
         {/* Display Search Results */}
         <FlatList
           data={query.length > 0 ? results : posts}
+          extraData={posts} 
           showsVerticalScrollIndicator={false}
           contentContainerStyle={styles.listStyle}
           keyExtractor={item => item.id.toString()}

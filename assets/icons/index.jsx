@@ -21,6 +21,10 @@ import User from './User'
 import Video from './Video'
 import ThreeDotsCircle from './ThreeDotsCircle'
 import ThreeDotsHorizontal from './ThreeDotsHorizontal'
+import Openeye from './Openeye'
+import Offeye from './Offeye'
+
+
 
 
 
@@ -44,7 +48,9 @@ const icons= {
     user:User,
     video:Video,
     threeDotsCircle:ThreeDotsCircle,
-    threeDotsHorizontal:ThreeDotsHorizontal
+    threeDotsHorizontal:ThreeDotsHorizontal,
+    open:Openeye,
+    off:Offeye
 
 
 
