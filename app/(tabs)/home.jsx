@@ -22,12 +22,12 @@ const Home = () => {
   const [posts, setPosts] = useState([]);
   const [query, setQuery] = useState(''); // New state for search query
   const [results, setResults] = useState([]); // New state for search results
-  const [loading, setLoading] = useState(false); // New state for search loading indicator
+  const [loading, setLoading] = useState(true); // Global loading state for page
+  const [searchLoading, setSearchLoading] = useState(false); // Loading state for search bar
   const [hasMore, setHasMore] = useState(true);
   const [notificationCount, setNotificationCount] = useState(0);
   const navigation = useNavigation();
 
-  // Use `useFocusEffect` to clear the search query when switching tabs
   useFocusEffect(
     React.useCallback(() => {
       // Clear the search query whenever the screen loses focus
@@ -40,7 +40,7 @@ const Home = () => {
     if (item) {
       router.push({
         pathname: '/Visit/VisitProfile',
-        params: item
+        params: item,
       });
     }
   };
@@ -49,11 +49,11 @@ const Home = () => {
     setQuery(text);
     if (text.trim() === '') {
       setResults([]);
-      setLoading(false);
+      setSearchLoading(false);
       return;
     }
 
-    setLoading(true);
+    setSearchLoading(true);
     try {
       const { data, error } = await supabase.rpc('get_user_with_email', { search_text: text });
 
@@ -67,42 +67,32 @@ const Home = () => {
       console.error('Error fetching search results:', err);
       setResults([]);
     } finally {
-      setLoading(false);
+      setSearchLoading(false);
     }
   };
 
   const handlePostEvent = async (payload) => {
-    if (payload.eventType == 'INSERT' && payload?.new?.id) {
+    if (payload.eventType === 'INSERT' && payload?.new?.id) {
       let newPost = { ...payload.new };
       let res = await getUserData(newPost.userId);
       newPost.postLikes = [];
       newPost.comments = [{ count: 0 }];
       newPost.user = res.success ? res.data : {};
-      setPosts(prevPosts => [newPost, ...prevPosts]);
+      setPosts((prevPosts) => [newPost, ...prevPosts]);
     }
-    if (payload.eventType == 'DELETE' && payload.old.id) {
-      setPosts(prevPosts => {
-        let updatedPosts = prevPosts.filter(post => post.id !== payload.old.id);
-        return updatedPosts;
-      });
+    if (payload.eventType === 'DELETE' && payload.old.id) {
+      setPosts((prevPosts) => prevPosts.filter((post) => post.id !== payload.old.id));
     }
-    if (payload.eventType == 'UPDATE' && payload?.new?.id) {
-      setPosts(prevPosts => {
-        let updatedPosts = prevPosts.map(post => {
-          if (post.id === payload.new.id) {
-            post.body = payload.new.body;
-            post.file = payload.new.file;
-          }
-          return post;
-        });
-        return updatedPosts;
-      });
+    if (payload.eventType === 'UPDATE' && payload?.new?.id) {
+      setPosts((prevPosts) =>
+        prevPosts.map((post) => (post.id === payload.new.id ? { ...post, ...payload.new } : post))
+      );
     }
   };
 
   const handleNewNotification = async (payload) => {
-    if (payload.eventType == 'INSERT' && payload.new.id) {
-      setNotificationCount(prev => prev + 1);
+    if (payload.eventType === 'INSERT' && payload.new.id) {
+      setNotificationCount((prev) => prev + 1);
     }
   };
 
@@ -126,95 +116,101 @@ const Home = () => {
   }, []);
 
   const getPosts = async () => {
-    if (!hasMore) return null;
-    limit = limit + 10;
-
-    let res = await fetchPosts(limit);
-    if (res.success) {
-      if (posts.length === res.data.length) setHasMore(false);
-      setPosts(res.data);
+    if (!hasMore) return;
+    limit += 10;
+    try {
+      setLoading(true); // Start loading posts
+      const res = await fetchPosts(limit);
+      if (res.success) {
+        if (posts.length === res.data.length) setHasMore(false);
+        setPosts(res.data);
+      }
+    } finally {
+      setLoading(false); // Stop loading posts
     }
   };
 
   return (
     <ScreenWrapper bg="white">
-      <View style={styles.container}>
-        {/* Header with Search and Icons */}
-        <View style={styles.header}>
-          <Text style={styles.title}>Header</Text>
-          <View style={styles.icons}>
-            <Pressable onPress={() => { setNotificationCount(0); router.push('notifications'); }}>
-              <Icon name="heart" size={hp(3.2)} strokeWidth={2} color={theme.colors.text} />
-              {notificationCount > 0 && (
-                <View style={styles.pill}>
-                  <Text style={styles.pillText}>{notificationCount}</Text>
-                </View>
-              )}
-            </Pressable>
-            <Pressable onPress={() => router.push('newPost')}>
-              <Icon name="add" size={hp(3.2)} strokeWidth={2} color={theme.colors.text} />
-            </Pressable>
-            <Pressable onPress={() => router.push('profile')}>
-              <Avatar uri={user?.image} size={hp(4.3)} rounded={theme.radius.sm} style={{ borderWidth: 2 }} />
-            </Pressable>
-          </View>
-        </View>
-
-        {/* Search Input */}
-        <View style={styles.searchContainer}>
-          <Icon name="search" size={20} color="#888" style={styles.icon} />
-          <TextInput
-            style={styles.input}
-            placeholder="Search for users..."
-            value={query}
-            onChangeText={handleSearch}
-          />
-          {loading && <ActivityIndicator style={styles.loadingIndicator} size="small" color={theme.colors.primary} />}
-        </View>
-
-        {/* Display Search Results */}
-        <FlatList
-          data={query.length > 0 ? results : posts}
-          extraData={posts}
-          showsVerticalScrollIndicator={false}
-          contentContainerStyle={styles.listStyle}
-          keyExtractor={item => item.id.toString()}
-          renderItem={({ item }) => {
-            // console.log("Rendering item:", item);  // Log each item being rendered
-            return query.length > 0 ? (
-              <Pressable onPress={() => handleUserClick(item)} style={styles.resultItem}>
-                <Avatar uri={item.image} size={hp(4.5)} rounded={theme.radius.md} />
-                <View style={{ marginLeft: 10 }}>
-                  <Text style={styles.resultText}>{item.name}</Text>
-                </View>
+      {loading ? (
+        <Loading />
+      ) : (
+        <View style={styles.container}>
+          {/* Header with Search and Icons */}
+          <View style={styles.header}>
+            <Text style={styles.title}>Header</Text>
+            <View style={styles.icons}>
+              <Pressable onPress={() => { setNotificationCount(0); router.push('notifications'); }}>
+                <Icon name="heart" size={hp(3.2)} strokeWidth={2} color={theme.colors.text} />
+                {notificationCount > 0 && (
+                  <View style={styles.pill}>
+                    <Text style={styles.pillText}>{notificationCount}</Text>
+                  </View>
+                )}
               </Pressable>
-            ) : (
-              <PostCard item={item} currentUser={user} router={router} />
-            );
-          }}
-          onEndReached={() => {
-            if (query.length === 0) getPosts();
-          }}
-          onEndReachedThreshold={0.5}
-          ListFooterComponent={
-            hasMore && query.length === 0 ? (
-              <View style={{ marginVertical: posts.length === 0 ? 200 : 30 }}>
-                <Loading />
-              </View>
-            ) : (
-              <View style={{ marginVertical: 30 }}>
-                <Text style={styles.noPosts}>{query.length === 0 ? 'No more posts' : ''}</Text>
-              </View>
-            )
-          }
-        />
-      </View>
+              <Pressable onPress={() => router.push('newPost')}>
+                <Icon name="add" size={hp(3.2)} strokeWidth={2} color={theme.colors.text} />
+              </Pressable>
+              <Pressable onPress={() => router.push('profile')}>
+                <Avatar uri={user?.image} size={hp(4.3)} rounded={theme.radius.sm} style={{ borderWidth: 2 }} />
+              </Pressable>
+            </View>
+          </View>
+
+          {/* Search Input */}
+          <View style={styles.searchContainer}>
+            <Icon name="search" size={20} color="#888" style={styles.icon} />
+            <TextInput
+              style={styles.input}
+              placeholder="Search for users..."
+              value={query}
+              onChangeText={handleSearch}
+            />
+            {searchLoading && <ActivityIndicator style={styles.loadingIndicator} size="small" color={theme.colors.primary} />}
+          </View>
+
+          {/* Display Search Results or Posts */}
+          <FlatList
+            data={query.length > 0 ? results : posts}
+            extraData={posts}
+            showsVerticalScrollIndicator={false}
+            contentContainerStyle={styles.listStyle}
+            keyExtractor={(item) => item.id.toString()}
+            renderItem={({ item }) =>
+              query.length > 0 ? (
+                <Pressable onPress={() => handleUserClick(item)} style={styles.resultItem}>
+                  <Avatar uri={item.image} size={hp(4.5)} rounded={theme.radius.md} />
+                  <View style={{ marginLeft: 10 }}>
+                    <Text style={styles.resultText}>{item.name}</Text>
+                  </View>
+                </Pressable>
+              ) : (
+                <PostCard item={item} currentUser={user} router={router} />
+              )
+            }
+            onEndReached={() => {
+              if (query.length === 0) getPosts();
+            }}
+            onEndReachedThreshold={0.5}
+            ListFooterComponent={
+              hasMore && query.length === 0 ? (
+                <View style={{ marginVertical: posts.length === 0 ? 200 : 30 }}>
+                  <Loading />
+                </View>
+              ) : (
+                <View style={{ marginVertical: 30 }}>
+                  <Text style={styles.noPosts}>{query.length === 0 ? 'No more posts' : ''}</Text>
+                </View>
+              )
+            }
+          />
+        </View>
+      )}
     </ScreenWrapper>
   );
 };
 
 export default Home;
-
 const styles = StyleSheet.create({
   container: { 
     flex: 1 

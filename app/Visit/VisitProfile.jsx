@@ -10,6 +10,9 @@ import Icon from '../../assets/icons';
 import { fetchPosts } from '../../services/postService';
 import PostCard from '../../components/PostCard';
 import Loading from '../../components/Loading';
+import { TouchableOpacity } from 'react-native';
+import Colors from '../../constants/Colors';
+import Ionicons from '@expo/vector-icons/Ionicons';
 
 var limit = 0;
 const VisitProfile = () => {
@@ -80,7 +83,33 @@ const VisitProfile = () => {
   );
 };
 
-const UserHeader = ({ item }) => {
+const UserHeader = ({ item, router }) => {
+
+  const onPressMenu = (menu) => {
+    router.push({
+      pathname: menu.path,
+      params: {
+        email: item.email, // Passing the visited user's email
+        name: item.name,   // Passing the visited user's name
+      },
+    });
+  };
+
+const Menu = [
+    {
+        id: 1,
+        name: 'Pet',
+        icon: 'bookmark',
+        path: '/../user-post'
+    },
+    {
+      id: 2,
+      name: 'Message',
+      icon: 'send',
+      path: ''
+    }
+
+  ]
   return (
     <View style={{ flex: 1, paddingHorizontal: wp(4) }}>
       <View>
@@ -114,6 +143,29 @@ const UserHeader = ({ item }) => {
               </View>
             )}
             {item.bio && <Text style={styles.infoText}>{item.bio}</Text>}
+
+
+            <FlatList
+                data={Menu}
+                renderItem={({ item, index }) => (
+                    <TouchableOpacity
+                        onPress={() => onPressMenu(item)}
+                        key={index}
+                        style={{
+                        marginVertical: 10,
+                        flexDirection: 'row',
+                        alignItems: 'center',
+                        backgroundColor: Colors.WHITE,
+                        gap: 10,
+                        padding: 10,
+                        borderRadius: 10
+                        }}>
+                        <Ionicons name={item?.icon} size={30} color={Colors.PRIMARY} style={{ padding: 10, backgroundColor: Colors.LIGHT_PRIMARY, borderRadius: 10 }} />
+                            <Text style={{ fontFamily: 'regular', fontSize: 20 }}>{item.name}</Text>
+                    </TouchableOpacity>
+                        )}
+                    />
+
           </View>
         </View>
       </View>

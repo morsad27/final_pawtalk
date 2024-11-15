@@ -5,6 +5,7 @@ import { useAuth } from '../../contexts/AuthContext';
 import { supabase } from '../../lib/supabase';
 import PetListItem from '../../components/Home/PetListItem';
 import Colors from '../../constants/Colors';
+import { useLocalSearchParams } from 'expo-router';
 
 export default function UserPost() {
   const navigation = useNavigation();
@@ -12,24 +13,33 @@ export default function UserPost() {
   const [userPosts, setUserPosts] = useState([]);
   const [loader, setLoader] = useState(false);
 
+  // Get parameters from route to identify the visited user
+  const params = useLocalSearchParams();
+
   useEffect(() => {
     navigation.setOptions({
       headerTransparent: true,
       headerTitle: ''
     });
 
-    if (user) {
-      GetUserPost();
-    }
-  }, [user]);
+    GetUserPost();
+  }, []);
 
   const GetUserPost = async () => {
     setLoader(true);
     try {
+      
+      const userEmail = params?.email || user?.email;
+
+      if (!userEmail) {
+        setLoader(false);
+        return;
+      }
+
       const { data, error } = await supabase
         .from('pets')
         .select('*')
-        .eq('email', user?.email);
+        .eq('email', userEmail);
 
       if (error) {
         console.error('Error fetching user posts:', error);
@@ -47,7 +57,7 @@ export default function UserPost() {
     Alert.alert('Delete', 'Do you want to delete this post?', [
       {
         text: 'Cancel',
-        onPress: () => console.log("Cancel Click"),
+        onPress: () => console.log('Cancel Click'),
         style: 'cancel'
       },
       {
@@ -68,7 +78,7 @@ export default function UserPost() {
         console.error('Error deleting post:', error);
       } else {
         console.log('Post deleted');
-        GetUserPost();  
+        GetUserPost();
       }
     } catch (error) {
       console.error('Error:', error);
@@ -85,19 +95,26 @@ export default function UserPost() {
         renderItem={({ item, index }) => (
           <View key={index}>
             <PetListItem pet={item} />
-            <Pressable onPress={() => DeletePost(item?.id)} style={styles.deleteButton}>
-              <Text style={{
-                fontFamily: 'regular',
-                textAlign: 'center',
-                fontSize: 15
-              }}>Delete</Text>
-            </Pressable>
+            {/* Allow deletion only for logged-in user's posts */}
+            {!params?.email && (
+              <Pressable onPress={() => DeletePost(item?.id)} style={styles.deleteButton}>
+                <Text style={{
+                  fontFamily: 'regular',
+                  textAlign: 'center',
+                  fontSize: 15
+                }}>Delete</Text>
+              </Pressable>
+            )}
           </View>
         )}
-        ListHeaderComponent={() => (
-          <View style={{ paddingVertical: 10 }}>
-            <Text style={{ fontSize: 25, fontWeight: 'bold' }}>User's Pet Posts</Text>
-          </View>
+        ListEmptyComponent={() => (
+          !loader && (
+            <View style={{ paddingVertical: 20, alignItems: 'center' }}>
+              <Text style={{ fontSize: 18, color: Colors.GRAY }}>
+                No pet uploaded
+              </Text>
+            </View>
+          )
         )}
       />
     </View>
