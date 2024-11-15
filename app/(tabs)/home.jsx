@@ -12,7 +12,7 @@ import { fetchPosts } from '../../services/postService';
 import PostCard from '../../components/PostCard';
 import Loading from '../../components/Loading';
 import { getUserData } from '../../services/userService';
-import { useNavigation } from '@react-navigation/native';
+import { useNavigation, useFocusEffect } from '@react-navigation/native';
 
 var limit = 0;
 
@@ -27,19 +27,23 @@ const Home = () => {
   const [notificationCount, setNotificationCount] = useState(0);
   const navigation = useNavigation();
 
+  // Use `useFocusEffect` to clear the search query when switching tabs
+  useFocusEffect(
+    React.useCallback(() => {
+      // Clear the search query whenever the screen loses focus
+      setQuery('');
+      setResults([]);
+    }, [])
+  );
+
   const handleUserClick = (item) => {
-    // console.log("Item data being passed before router.push:", item);  // Debug log to check item data
     if (item) {
       router.push({
         pathname: '/Visit/VisitProfile',
-        params:item
+        params: item
       });
-    } else {
-      console.log("Item is undefined or null.");
     }
   };
-  
-  
 
   const handleSearch = async (text) => {
     setQuery(text);
@@ -48,16 +52,11 @@ const Home = () => {
       setLoading(false);
       return;
     }
-  
+
     setLoading(true);
     try {
-      const { data, error } = await supabase
-        .from('users')
-        .select('id, name, image, bio, email, phoneNumber')
-        .ilike('name', `%${text}%`);
-  
-      // console.log("Search results:", data);  // Debugging output
-  
+      const { data, error } = await supabase.rpc('get_user_with_email', { search_text: text });
+
       if (error) {
         console.error('Search error:', error.message);
         setResults([]);
@@ -71,31 +70,28 @@ const Home = () => {
       setLoading(false);
     }
   };
-  
 
   const handlePostEvent = async (payload) => {
-    console.log('payload:', payload)
-    if(payload.eventType == 'INSERT' &&  payload?.new?.id){
-      let newPost = {...payload.new};
+    if (payload.eventType == 'INSERT' && payload?.new?.id) {
+      let newPost = { ...payload.new };
       let res = await getUserData(newPost.userId);
-      newPost.postLikes =[];
-      newPost.comments = [{count:0}];
-      newPost.user = res.success? res.data : {};
+      newPost.postLikes = [];
+      newPost.comments = [{ count: 0 }];
+      newPost.user = res.success ? res.data : {};
       setPosts(prevPosts => [newPost, ...prevPosts]);
     }
-    if(payload.eventType == 'DELETE' && payload.old.id){
+    if (payload.eventType == 'DELETE' && payload.old.id) {
       setPosts(prevPosts => {
         let updatedPosts = prevPosts.filter(post => post.id !== payload.old.id);
         return updatedPosts;
       });
     }
-    // Update LIKE or COMMENT counts in the feed if necessary
-    if(payload.eventType == 'UPDATE' && payload?.new?.id){
+    if (payload.eventType == 'UPDATE' && payload?.new?.id) {
       setPosts(prevPosts => {
         let updatedPosts = prevPosts.map(post => {
-          if(post.id === payload.new.id){
+          if (post.id === payload.new.id) {
             post.body = payload.new.body;
-            post.file = payload.new.file; 
+            post.file = payload.new.file;
           }
           return post;
         });
@@ -104,33 +100,30 @@ const Home = () => {
     }
   };
 
-
   const handleNewNotification = async (payload) => {
-    console.log('got new notification:', payload);
-    if(payload.eventType == 'INSERT' && payload.new.id){
+    if (payload.eventType == 'INSERT' && payload.new.id) {
       setNotificationCount(prev => prev + 1);
     }
   };
-
 
   useEffect(() => {
     let postChannel = supabase
       .channel('posts')
       .on('postgres_changes', { event: '*', schema: 'public', table: 'posts' }, handlePostEvent)
       .subscribe();
-    
+
     let notificationChannel = supabase
       .channel('notifications')
       .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'notifications', filter: `receiverId=eq.${user.id}` }, handleNewNotification)
       .subscribe();
-    
+
     getPosts();
 
     return () => {
       supabase.removeChannel(postChannel);
       supabase.removeChannel(notificationChannel);
     };
-  }, []); 
+  }, []);
 
   const getPosts = async () => {
     if (!hasMore) return null;
@@ -182,12 +175,12 @@ const Home = () => {
         {/* Display Search Results */}
         <FlatList
           data={query.length > 0 ? results : posts}
-          extraData={posts} 
+          extraData={posts}
           showsVerticalScrollIndicator={false}
           contentContainerStyle={styles.listStyle}
           keyExtractor={item => item.id.toString()}
           renderItem={({ item }) => {
-            console.log("Rendering item:", item);  // Log each item being rendered
+            // console.log("Rendering item:", item);  // Log each item being rendered
             return query.length > 0 ? (
               <Pressable onPress={() => handleUserClick(item)} style={styles.resultItem}>
                 <Avatar uri={item.image} size={hp(4.5)} rounded={theme.radius.md} />

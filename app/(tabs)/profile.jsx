@@ -18,11 +18,13 @@ import Colors from '../../constants/Colors'
 import Ionicons from '@expo/vector-icons/Ionicons';
 
 var limit =  0;
+
 const Profile = () => {
-    const { user, setAuth } = useAuth(); // Get user and setAuth from context
-    const router = useRouter(); // Get the router object
+    const { user, setAuth } = useAuth(); 
+    const router = useRouter(); 
     const [posts, setPosts] = useState([]);
     const [hasMore, setHasMore] = useState(true);
+    const [loading, setLoading] = useState(true); // Loading state for the profile data
 
     const onLogout = async () => {
         const { error } = await supabase.auth.signOut();
@@ -37,65 +39,60 @@ const Profile = () => {
           let newPost = {...payload.new};
           let res = await getUserData(newPost.userId);
           newPost.postLikes =[];
-          newPost.comments = [{count:0}]
+          newPost.comments = [{count:0}];
           newPost.user = res.success? res.data : {};
           setPosts(prevPosts=>[newPost, ...prevPosts]);
         }
         if(payload.eventType=='DELETE' && payload.old.id){
           setPosts(prevPosts=>{
-            let updatedPosts = prevPosts.filter(post=> post.id!=payload.old.id);
+            let updatedPosts = prevPosts.filter(post=> post.id != payload.old.id);
             return updatedPosts;
-          })
-    
-          
+          });
         }
-        //POSSIBLE NA PWEDENG PAGKUHAAN NG UPDATE NG LIKE BUTTON OR COMMENT SA NEWSFEED------------------------------------------------------------------------------
+        // Handle possible updates to post content
         if(payload.eventType == 'UPDATE' &&  payload?.new?.id){
           setPosts(prevPosts=>{
             let updatedPosts = prevPosts.map(post=>{
               if(post.id == payload.new.id){
-                post.body = payload.new.body;;
+                post.body = payload.new.body;
                 post.file = payload.new.file; 
               }
               return post;
             });
             return updatedPosts;
-          })
-          
+          });
         }
-        
-        //console.log('got post event:', payload);
-      }
-    
-    
-      useEffect(()=>{
+    };
+
+    useEffect(() => {
+        // Simulating the profile load
+        setLoading(true); // Start loading when profile is being loaded
+
         let postChannel = supabase
-        .channel('posts')
-        .on('postgres_changes', {event: '*', schema: 'public', table:'posts'}, handlePostEvent)
-        .subscribe();
-         
-    
-       // getPosts();
-    
-        return () =>{
-          supabase.removeChannel(postChannel);
-        }
-      },[]);
-    
-    const getPosts = async () =>{
-        //call the api here
-        if(!hasMore) return null;
+            .channel('posts')
+            .on('postgres_changes', {event: '*', schema: 'public', table:'posts'}, handlePostEvent)
+            .subscribe();
+
+        getPosts(); // Fetch the posts when the profile is loaded
+
+        return () => {
+            supabase.removeChannel(postChannel);
+        };
+    }, []);
+
+    const getPosts = async () => {
+        // Simulate fetching posts from API
+        if (!hasMore) return null;
         limit = limit + 10;
-        
+
         console.log('fetching posts:', limit);
         let res = await fetchPosts(limit, user.id);
-        if(res.success){
-          if(posts.length == res.data.length) setHasMore(false);
-          setPosts(res.data);
+        if (res.success) {
+            if (posts.length == res.data.length) setHasMore(false);
+            setPosts(res.data);
+            setLoading(false); // Set loading to false once posts are fetched
         }
-        //console.log('got posts results:', res);
-       // console.log('user:', res.data[0].user)
-      }
+    }
 
     const handleLogout = async () => {
         Alert.alert('Confirm', "Are you sure you want to log out?", [
@@ -106,76 +103,68 @@ const Profile = () => {
             },
             {
                 text: 'Logout',
-                onPress: () => onLogout(), // Call the onLogout function
+                onPress: () => onLogout(),
                 style: 'destructive'
             }
         ]);
     };
 
     return (
-        <ScreenWrapper >
-            {/* Update: Correctly passing router prop */}
-            <FlatList
-          data={posts}
-          ListHeaderComponent={<UserHeader user={user} router={router} handleLogout={handleLogout} />}
-          ListHeaderComponentStyle={{marginBottom: 30}}
-          showsVerticalScrollIndicator={false}
-          contentContainerStyle={styles.listStyle}
-          keyExtractor={item=> item.id.toString()}
-          renderItem={({item})=> <PostCard
-              item={item}
-              currentUser={user}
-              router={router}
-              />
-        }
-
-        onEndReached={()=>{
-          getPosts();
-          //console.log('got to the end');
-        }}
-        onEndReachedThreshold={0}
-
-        ListFooterComponent={hasMore?(
-          <View style={{marginVertical: posts.length == 0? 100: 30}}>
-            <Loading/>
-            </View>
-        ):(
-          <View style={{marginVertical: 30}}>
-            <Text style = {styles.noPosts}>No more posts</Text>
-            </View>
-        )}
-
-      />
-            
+        <ScreenWrapper>
+            {/* Display loading indicator while fetching profile data */}
+            {loading ? (
+                <Loading />
+            ) : (
+                <FlatList
+                    data={posts}
+                    ListHeaderComponent={<UserHeader user={user} router={router} handleLogout={handleLogout} />}
+                    ListHeaderComponentStyle={{ marginBottom: 30 }}
+                    showsVerticalScrollIndicator={false}
+                    contentContainerStyle={styles.listStyle}
+                    keyExtractor={item => item.id.toString()}
+                    renderItem={({ item }) => <PostCard item={item} currentUser={user} router={router} />}
+                    onEndReached={() => {
+                        getPosts();
+                    }}
+                    onEndReachedThreshold={0.5}
+                    ListFooterComponent={hasMore ? (
+                        <View style={{ marginVertical: posts.length == 0 ? 100 : 30 }}>
+                            <Loading />
+                        </View>
+                    ) : (
+                        <View style={{ marginVertical: 30 }}>
+                            <Text style={styles.noPosts}>No more posts</Text>
+                        </View>
+                    )}
+                />
+            )}
         </ScreenWrapper>
     );
 };
 
 // UserHeader component to display user information
 const UserHeader = ({ user, router, handleLogout }) => {
-
-    const onPressMenu=(menu)=>{
-        router.push(menu.path)
+    const onPressMenu = (menu) => {
+        router.push(menu.path);
     }
-    const Menu=[
+
+    const Menu = [
         {
             id: 1,
             name: 'Add New Pet',
             icon: 'add-circle',
             path: '/add-new-pet'
         },
-        
         {
             id: 2,
             name: 'My Post',
             icon: 'bookmark',
             path: '/../user-post'
         }
-    ]
-
+    ];
 
     return (
-        <View style={{ flex: 1,  paddingHorizontal: wp(4) }}>
+        <View style={{ flex: 1, paddingHorizontal: wp(4) }}>
             <View>
                 <Header title="Profile" mb={30} />
                 <TouchableOpacity style={styles.logoutButton} onPress={handleLogout}>
@@ -186,78 +175,54 @@ const UserHeader = ({ user, router, handleLogout }) => {
                 <View style={{ gap: 15 }}>
                     <View style={styles.avatarContainer}>
                         <Avatar
-                            uri={user?.image} // Using optional chaining to avoid errors
+                            uri={user?.image}
                             size={hp(12)}
                             rounded={theme.radius.xxl * 1.4}
                         />
-                        {/* Update: Ensure correct use of router to navigate */}
                         <Pressable style={styles.editIcon} onPress={() => router.push('editProfile')}>
                             <Icon name="edit" strokeWidth={2} size={20} />
                         </Pressable>
                     </View>
-                    {/* username and address */}
                     <View style={{ alignItems: 'center', gap: 4 }}>
-                        <Text style={styles.userName}>{user && user.name}</Text>
-                        <Text style={styles.infoText}>{user && user.address}</Text>
+                        <Text style={styles.userName}>{user?.name}</Text>
+                        <Text style={styles.infoText}>{user?.address}</Text>
                     </View>
-                    {/* email, phone, bio */}
                     <View style={{ gap: 10 }}>
                         <View style={styles.info}>
                             <Icon name="mail" size={20} color={theme.colors.textLight} />
-                            <Text style={styles.infoText}>
-                                {user && user.email}
-                            </Text>
+                            <Text style={styles.infoText}>{user?.email}</Text>
                         </View>
-                        {user && user.phoneNumber && ( // Check if phoneNumber exists
+                        {user?.phoneNumber && (
                             <View style={{ gap: 10 }}>
                                 <View style={styles.info}>
                                     <Icon name="call" size={20} color={theme.colors.textLight} />
-                                    <Text style={styles.infoText}>
-                                        {user && user.phoneNumber}
-                                    </Text>
+                                    <Text style={styles.infoText}>{user?.phoneNumber}</Text>
                                 </View>
                             </View>
                         )}
-                        {user && user.bio && ( // Check if bio exists
-                            <Text style={styles.infoText}>{user.bio}</Text>
-                        )}
-                        
+                        {user?.bio && <Text style={styles.infoText}>{user?.bio}</Text>}
                     </View>
-                        
-                   <FlatList
-                   data={Menu}
-                   renderItem={({item,index})=>(
-                    <TouchableOpacity 
-                    onPress={()=>onPressMenu(item)}
-                    key={index}
-                    style={{
-                        marginVertical: 10,
-                        display: 'flex',
-                        flexDirection: 'row',
-                        alignItems: 'center',
-                        backgroundColor: Colors.WHITE,
-                        gap: 10,
-                        
-                        padding: 10,
-                        borderRadius: 10
-                    }}>
-                        <Ionicons name={item?.icon} size={30} 
-                        color={Colors.PRIMARY} 
-                        style={{
-                            padding: 10,
-                            backgroundColor: Colors.LIGHT_PRIMARY,
-                            borderRadius: 10
-                        }}
-                        
-                        />
-                        <Text style={{
-                            fontFamily: 'regular',
-                            fontSize: 20
-                        }}>{item.name}</Text>
-                    </TouchableOpacity>
-                   )}
-                   />
-                    
+
+                    <FlatList
+                        data={Menu}
+                        renderItem={({ item, index }) => (
+                            <TouchableOpacity
+                                onPress={() => onPressMenu(item)}
+                                key={index}
+                                style={{
+                                    marginVertical: 10,
+                                    flexDirection: 'row',
+                                    alignItems: 'center',
+                                    backgroundColor: Colors.WHITE,
+                                    gap: 10,
+                                    padding: 10,
+                                    borderRadius: 10
+                                }}>
+                                <Ionicons name={item?.icon} size={30} color={Colors.PRIMARY} style={{ padding: 10, backgroundColor: Colors.LIGHT_PRIMARY, borderRadius: 10 }} />
+                                <Text style={{ fontFamily: 'regular', fontSize: 20 }}>{item.name}</Text>
+                            </TouchableOpacity>
+                        )}
+                    />
                 </View>
             </View>
         </View>
@@ -265,6 +230,7 @@ const UserHeader = ({ user, router, handleLogout }) => {
 };
 
 export default Profile;
+
 
 const styles = StyleSheet.create({
     container: {
