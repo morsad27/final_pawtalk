@@ -12,11 +12,12 @@ import { fetchPosts } from '../../services/postService';
 import PostCard from '../../components/PostCard';
 import Loading from '../../components/Loading';
 import { getUserData } from '../../services/userService';
+import { useNavigation } from '@react-navigation/native';
 
 var limit = 0;
 
 const Home = () => {
-  const { user, setAuth } = useAuth();
+  const { user } = useAuth();
   const router = useRouter();
   const [posts, setPosts] = useState([]);
   const [query, setQuery] = useState(''); // New state for search query
@@ -24,6 +25,21 @@ const Home = () => {
   const [loading, setLoading] = useState(false); // New state for search loading indicator
   const [hasMore, setHasMore] = useState(true);
   const [notificationCount, setNotificationCount] = useState(0);
+  const navigation = useNavigation();
+
+  const handleUserClick = (item) => {
+    // console.log("Item data being passed before router.push:", item);  // Debug log to check item data
+    if (item) {
+      router.push({
+        pathname: '/Visit/VisitProfile',
+        params:item
+      });
+    } else {
+      console.log("Item is undefined or null.");
+    }
+  };
+  
+  
 
   const handleSearch = async (text) => {
     setQuery(text);
@@ -32,14 +48,16 @@ const Home = () => {
       setLoading(false);
       return;
     }
-
+  
     setLoading(true);
     try {
       const { data, error } = await supabase
         .from('users')
-        .select('id, name, email, image')
+        .select('id, name, image, bio, email, phoneNumber')
         .ilike('name', `%${text}%`);
-
+  
+      // console.log("Search results:", data);  // Debugging output
+  
       if (error) {
         console.error('Search error:', error.message);
         setResults([]);
@@ -53,6 +71,7 @@ const Home = () => {
       setLoading(false);
     }
   };
+  
 
   const handlePostEvent = async (payload) => {
     console.log('payload:', payload)
@@ -60,47 +79,41 @@ const Home = () => {
       let newPost = {...payload.new};
       let res = await getUserData(newPost.userId);
       newPost.postLikes =[];
-      newPost.comments = [{count:0}]
+      newPost.comments = [{count:0}];
       newPost.user = res.success? res.data : {};
-      setPosts(prevPosts=>[newPost, ...prevPosts]);
+      setPosts(prevPosts => [newPost, ...prevPosts]);
     }
-    if(payload.eventType=='DELETE' && payload.old.id){
-      setPosts(prevPosts=>{
-        let updatedPosts = prevPosts.filter(post=> post.id!=payload.old.id);
+    if(payload.eventType == 'DELETE' && payload.old.id){
+      setPosts(prevPosts => {
+        let updatedPosts = prevPosts.filter(post => post.id !== payload.old.id);
         return updatedPosts;
-      })
-
-      
+      });
     }
-    //POSSIBLE NA PWEDENG PAGKUHAAN NG UPDATE NG LIKE BUTTON OR COMMENT SA NEWSFEED------------------------------------------------------------------------------
-    if(payload.eventType == 'UPDATE' &&  payload?.new?.id){
-      setPosts(prevPosts=>{
-        let updatedPosts = prevPosts.map(post=>{
-          if(post.id == payload.new.id){
-            post.body = payload.new.body;;
+    // Update LIKE or COMMENT counts in the feed if necessary
+    if(payload.eventType == 'UPDATE' && payload?.new?.id){
+      setPosts(prevPosts => {
+        let updatedPosts = prevPosts.map(post => {
+          if(post.id === payload.new.id){
+            post.body = payload.new.body;
             post.file = payload.new.file; 
           }
           return post;
         });
         return updatedPosts;
-      })
-      
+      });
     }
-    
-    //console.log('got post event:', payload);
-  }
+  };
 
 
-  const handleNewNotification = async (payload)=>{
+  const handleNewNotification = async (payload) => {
     console.log('got new notification:', payload);
     if(payload.eventType == 'INSERT' && payload.new.id){
-      setNotificationCount(prev=> prev+1);
+      setNotificationCount(prev => prev + 1);
     }
-  }
+  };
 
 
   useEffect(() => {
-    // console.log("Subscribing to Supabase channels");
     let postChannel = supabase
       .channel('posts')
       .on('postgres_changes', { event: '*', schema: 'public', table: 'posts' }, handlePostEvent)
@@ -110,14 +123,14 @@ const Home = () => {
       .channel('notifications')
       .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'notifications', filter: `receiverId=eq.${user.id}` }, handleNewNotification)
       .subscribe();
-      
+    
     getPosts();
 
     return () => {
       supabase.removeChannel(postChannel);
       supabase.removeChannel(notificationChannel);
     };
-  }, []);
+  }, []); 
 
   const getPosts = async () => {
     if (!hasMore) return null;
@@ -125,7 +138,7 @@ const Home = () => {
 
     let res = await fetchPosts(limit);
     if (res.success) {
-      if (posts.length == res.data.length) setHasMore(false);
+      if (posts.length === res.data.length) setHasMore(false);
       setPosts(res.data);
     }
   };
@@ -173,25 +186,23 @@ const Home = () => {
           showsVerticalScrollIndicator={false}
           contentContainerStyle={styles.listStyle}
           keyExtractor={item => item.id.toString()}
-          renderItem={({ item }) =>
-            query.length > 0 ? (
-              // Render user search results
-              <View style={styles.resultItem}>
+          renderItem={({ item }) => {
+            console.log("Rendering item:", item);  // Log each item being rendered
+            return query.length > 0 ? (
+              <Pressable onPress={() => handleUserClick(item)} style={styles.resultItem}>
                 <Avatar uri={item.image} size={hp(4.5)} rounded={theme.radius.md} />
                 <View style={{ marginLeft: 10 }}>
                   <Text style={styles.resultText}>{item.name}</Text>
-                  <Text style={styles.resultSubText}>{item.email}</Text>
                 </View>
-              </View>
+              </Pressable>
             ) : (
-              // Render posts if no search query is present
               <PostCard item={item} currentUser={user} router={router} />
-            )
-          }
+            );
+          }}
           onEndReached={() => {
             if (query.length === 0) getPosts();
           }}
-          onEndReachedThreshold={0}
+          onEndReachedThreshold={0.5}
           ListFooterComponent={
             hasMore && query.length === 0 ? (
               <View style={{ marginVertical: posts.length === 0 ? 200 : 30 }}>
