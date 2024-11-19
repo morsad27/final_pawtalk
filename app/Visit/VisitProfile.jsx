@@ -102,13 +102,7 @@ const Menu = [
         icon: 'bookmark',
         path: '/../user-post'
     },
-    {
-      id: 2,
-      name: 'Message',
-      icon: 'send',
-      path: ''
-    }
-
+  
   ]
   return (
     <View style={{ flex: 1, paddingHorizontal: wp(4) }}>

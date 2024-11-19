@@ -72,7 +72,7 @@ const Login = () => {
             />
             <Pressable onPress={() => setShowPassword(!showPassword)} style={styles.showPasswordIcon}>
               <Icon
-                name={showPassword ? "off" : "open"} // Change icon based on visibility
+                name={showPassword ? "open" : "off"} // Change icon based on visibility
                 size={25}
                 color={theme.colors.gray}
               />

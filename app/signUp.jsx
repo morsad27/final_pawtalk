@@ -82,7 +82,7 @@ const SignUp = () => {
             />
             <Pressable onPress={() => setShowPassword(!showPassword)} style={styles.showPasswordIcon}>
               <Icon
-                name={showPassword ? "off" : "open"} // Icon changes based on showPassword
+                name={showPassword ? "open" : "off"} // Icon changes based on showPassword
                 size={25}
                 color={theme.colors.gray}
               />
