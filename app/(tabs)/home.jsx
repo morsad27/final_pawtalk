@@ -26,6 +26,7 @@ const Home = () => {
   const [searchLoading, setSearchLoading] = useState(false); // Loading state for search bar
   const [hasMore, setHasMore] = useState(true);
   const [notificationCount, setNotificationCount] = useState(0);
+  const [refreshing, setRefreshing] = useState(false); // State to handle refresh
   const navigation = useNavigation();
 
   useFocusEffect(
@@ -115,21 +116,30 @@ const Home = () => {
     };
   }, []);
 
-  const getPosts = async () => {
-    if (!hasMore) return;
-    limit += 10;
+  const getPosts = async (isRefreshing = false) => {
+    if (!hasMore && !isRefreshing) return; 
     try {
-      setLoading(true); // Start loading posts
+      setLoading(true); 
       const res = await fetchPosts(limit);
       if (res.success) {
-        if (posts.length === res.data.length) setHasMore(false);
-        setPosts(res.data);
+        if (!isRefreshing && posts.length === res.data.length) {
+          setHasMore(false); 
+        }
+        setPosts(res.data); 
       }
     } finally {
-      setLoading(false); // Stop loading posts
+      setLoading(false); 
     }
   };
-
+  const onRefresh = async () => {
+    setRefreshing(true); 
+    limit = 10; 
+    setPosts([]); 
+    setHasMore(true); 
+    await getPosts(true);
+    setRefreshing(false); 
+  };
+  
   return (
     <ScreenWrapper bg="white">
       {loading ? (
@@ -203,6 +213,8 @@ const Home = () => {
                 </View>
               )
             }
+            onRefresh={onRefresh} // Add the refresh handler here
+            refreshing={refreshing} // Bind the refreshing state here
           />
         </View>
       )}
