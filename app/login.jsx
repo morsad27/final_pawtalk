@@ -22,23 +22,55 @@ const Login = () => {
       Alert.alert('Login', "Please fill all the fields!");
       return;
     }
-
+  
     let email = emailRef.current.trim();
     let password = passwordRef.current.trim();
     setLoading(true);
-
-    const { error } = await supabase.auth.signInWithPassword({
+  
+    // Step 1: Sign in the user
+    const { data: loginData, error: loginError } = await supabase.auth.signInWithPassword({
       email,
       password,
     });
-
+  
     setLoading(false);
-
-    if (error) {
-      Alert.alert('Login', error.message);
+  
+    if (loginError) {
+      Alert.alert('Login', loginError.message);
+      return;
+    }
+  
+    // Step 2: Fetch the logged-in user's information from auth.users
+    const { data: authUser, error: authError } = await supabase.auth.getUser();
+  
+    if (authError || !authUser) {
+      Alert.alert('Error', 'Failed to retrieve user information. Please try again.');
+      return;
+    }
+  
+    const userId = authUser.user.id; // Get the user's unique ID
+  
+    // Step 3: Fetch the user's group from public.users
+    const { data: userData, error: userError } = await supabase
+      .from('users')
+      .select('Group')
+      .eq('id', userId) // Match based on the user's ID from auth.users
+      .single();
+  
+    if (userError || !userData) {
+      Alert.alert('Error', 'Failed to fetch user group. Please try again.');
+      return;
+    }
+  
+    // Step 4: Check the user's group and navigate
+    if (userData.Group === 'ADMIN') {
+      router.push('admin/_layout'); // Navigate to admin layout
+    } else {
+      router.push('/(tabs)/home'); // Navigate to general user dashboard or any default page
     }
   };
-
+  
+  
   return (
     <ScreenWrapper bg="white">
       <StatusBar style='dark' />
