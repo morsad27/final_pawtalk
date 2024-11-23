@@ -1,14 +1,14 @@
 import { StyleSheet, Text, View } from 'react-native'
 import React from 'react'
 
-const posts = () => {
+const Documents = () => {
   return (
     <View>
-      <Text>posts</Text>
+      <Text>documents</Text>
     </View>
   )
 }
 
-export default posts
+export default Documents
 
 const styles = StyleSheet.create({})

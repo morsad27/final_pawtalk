@@ -62,12 +62,8 @@ const Login = () => {
       return;
     }
   
-    // Step 4: Check the user's group and navigate
-    if (userData.Group === 'ADMIN') {
-      router.push('admin/_layout'); // Navigate to admin layout
-    } else {
       router.push('/(tabs)/home'); // Navigate to general user dashboard or any default page
-    }
+    
   };
   
   
