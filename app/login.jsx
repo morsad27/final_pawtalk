@@ -105,10 +105,17 @@ const Login = () => {
                 color={theme.colors.gray}
               />
             </Pressable>
-          </View>
 
-          <Text style={styles.forgotPassword}>Forgot Password?</Text>
+          </View>
           
+          <Pressable onPress={() => router.push('/ForgotPass')}>
+            <Text style={[styles.loginText, {color: theme.colors.primaryDark, fontWeight: theme.fonts.semibold}]}>
+              Forgot Password?
+            </Text>
+          </Pressable>
+
+          
+
           {/* Login button */}
           <Button title={'Login'} loading={loading} onPress={onSubmit} />
         </View>
@@ -152,7 +159,7 @@ const styles = StyleSheet.create({
     top: 15,
   },
   forgotPassword: {
-    textAlign: 'right',
+    textAlign: 'center',
     fontWeight: theme.fonts.semibold,
     color: theme.colors.text,
   },
