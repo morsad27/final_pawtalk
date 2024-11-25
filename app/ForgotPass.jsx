@@ -9,32 +9,56 @@ import Button from '../components/Button';
 import { supabase } from '../lib/supabase';
 import Icon from '../assets/icons';
 const ForgotPass = () => {
+  const emailRef = useRef('');
+
+  const handleResetPassword = async () => {
+    try {
+      const email = emailRef.current;
+      if (!email) {
+        Alert.alert('Error', 'Please enter your email address.');
+        return;
+      }
+
+      const { error } = await supabase.auth.resetPasswordForEmail('user@example.com', {
+        redirectTo: 'https://pawtalk.fun/account/update-password',
+      });
+
+      if (error) {
+        Alert.alert('Error', error.message);
+      } else {
+        Alert.alert('Success', 'Password reset email sent! Check your inbox.');
+      }
+    } catch (err) {
+      Alert.alert('Error', 'Something went wrong. Please try again.');
+    }
+  };
+
   return (
     <ScreenWrapper bg="white">
-      <StatusBar style='dark' />
+      <StatusBar style="dark" />
       <View style={styles.container}>
         <BackButton router={'login'} />
 
         <View style={styles.textContainer}>
           <Text style={styles.title}>Forgot Password</Text>
-          <Text style={styles.punchLine}>Enter your email address below to reset your password.</Text>
+          <Text style={styles.punchLine}>
+            Enter your email address below to reset your password.
+          </Text>
         </View>
 
         {/* Form */}
         <View style={styles.form}>
-        
           <Input
             icon={<Icon name="mail" size={26} strokeWidth={1.6} />}
             placeholder="Enter your email"
-            onChangeText={value => emailRef.current = value}
+            onChangeText={value => (emailRef.current = value)}
           />
-
-<Button title={'Reset Password'} onPress={''} />
+          <Button title="Reset Password" onPress={handleResetPassword} />
         </View>
       </View>
     </ScreenWrapper>
-  )
-}
+  );
+};
 
 export default ForgotPass
 
