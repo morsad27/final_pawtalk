@@ -8,6 +8,7 @@ import Favorite from '../(tabs)/favorite';
 import Documents from '../(tabs)/documents';
 import Home from '../(tabs)/home';
 import Adopt from '../(tabs)/adopt';
+
 const Tab = createBottomTabNavigator();
 
 export default function HomeTabs() {
@@ -72,16 +73,19 @@ export default function HomeTabs() {
         },
         tabBarActiveTintColor: 'tomato',
         tabBarInactiveTintColor: 'gray',
-        headerShown: false, // Hides the header
+        headerShown: false,
       })}
     >
-      <Tab.Screen name="Adopt" component={Adopt} />
-      <Tab.Screen name="Favorite" component={Favorite} />
-      {group === 'ADMIN' && (
-        <Tab.Screen name="Documents" component={Documents} />
-      )}
-      {group !== 'ADMIN' && (
+      {group === 'ADMIN' ? (
         <>
+          <Tab.Screen name="Adopt" component={Adopt} />
+          <Tab.Screen name="Home" component={Home} />
+          <Tab.Screen name="Documents" component={Documents} />
+        </>
+      ) : (
+        <>
+          <Tab.Screen name="Adopt" component={Adopt} />
+          <Tab.Screen name="Favorite" component={Favorite} />
           <Tab.Screen name="Home" component={Home} />
           <Tab.Screen name="Inbox" component={Inbox} />
           <Tab.Screen name="Profile" component={Profile} />

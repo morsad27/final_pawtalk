@@ -27,6 +27,7 @@ const Home = () => {
   const [hasMore, setHasMore] = useState(true);
   const [notificationCount, setNotificationCount] = useState(0);
   const navigation = useNavigation();
+  const [group, setGroup] = useState(null);
 
   useFocusEffect(
     React.useCallback(() => {
@@ -35,6 +36,55 @@ const Home = () => {
       setResults([]);
     }, [])
   );
+
+  useEffect(() => {
+    const fetchUserGroup = async () => {
+      try {
+        const { data: authUser, error: authError } = await supabase.auth.getUser();
+
+        if (authError) {
+          console.error('Error fetching authenticated user:', authError);
+          return;
+        }
+
+        const userId = authUser.user.id;
+
+        const { data, error } = await supabase
+          .from('users')
+          .select('Group')
+          .eq('id', userId)
+          .single();
+
+        if (error) {
+          console.error('Error fetching user group:', error);
+        } else {
+          setGroup(data?.Group);
+        }
+      } catch (err) {
+        console.error('Unexpected error:', err);
+      }
+    };
+
+    fetchUserGroup();
+  }, []);
+
+  const handleLogout = async () => {
+    Alert.alert('Confirm', "Are you sure you want to log out?", [
+      {
+        text: 'Cancel',
+        onPress: () => console.log('Logout cancelled'),
+        style: 'cancel',
+      },
+      {
+        text: 'Logout',
+        onPress: async () => {
+          await supabase.auth.signOut();
+          router.push('/login');
+        },
+        style: 'destructive',
+      },
+    ]);
+  };
 
   const handleUserClick = (item) => {
     if (item) {
@@ -151,9 +201,15 @@ const Home = () => {
               <Pressable onPress={() => router.push('newPost')}>
                 <Icon name="add" size={hp(3.2)} strokeWidth={2} color={theme.colors.text} />
               </Pressable>
-              <Pressable onPress={() => router.push('profile')}>
-                <Avatar uri={user?.image} size={hp(4.3)} rounded={theme.radius.sm} style={{ borderWidth: 2 }} />
-              </Pressable>
+              {group === 'ADMIN' ? (
+                <Pressable style={styles.logoutButton} onPress={handleLogout}>
+                  <Icon name="logout" size={hp(3.2)} color={theme.colors.rose} />
+                </Pressable>
+              ) : (
+                <Pressable onPress={() => router.push('profile')}>
+                  <Avatar uri={user?.image} size={hp(4.3)} rounded={theme.radius.sm} style={{ borderWidth: 2 }} />
+                </Pressable>
+              )}
             </View>
           </View>
 
@@ -292,4 +348,5 @@ const styles = StyleSheet.create({
     textAlign: 'center', 
     color: theme.colors.text 
   },
+  
 });

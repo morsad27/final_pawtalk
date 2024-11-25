@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { View, Text, StyleSheet, Pressable, ScrollView } from 'react-native';
+import { View, Text, StyleSheet, Pressable, ScrollView, Modal, TextInput, TouchableOpacity } from 'react-native';
 import { useLocalSearchParams, useNavigation } from 'expo-router';
 import { GetUserDetails } from '../../services/postService';
 import { useAuth } from '../../contexts/AuthContext';
@@ -7,6 +7,11 @@ import { GiftedChat } from 'react-native-gifted-chat';
 import { supabase } from '../../lib/supabase';
 import { BlurView } from 'expo-blur'; 
 import CheckBox from 'expo-checkbox';
+import { Linking } from 'react-native'; 
+import { Picker } from '@react-native-picker/picker';
+import * as DocumentPicker from 'expo-document-picker';
+import { decode } from 'base64-arraybuffer';
+
 
 export default function ChatScreen() {
   const params = useLocalSearchParams();
@@ -16,7 +21,13 @@ export default function ChatScreen() {
   const [messages, setMessages] = useState([]);
   const [otherUser, setOtherUser] = useState(null);
   const [isTermsVisible, setIsTermsVisible] = useState(false); 
-  const [isAgreed, setIsAgreed] = useState(false); // Track agreement
+  const [isAgreed, setIsAgreed] = useState(false); 
+  const [isUploadModalVisible, setUploadModalVisible] = useState(false); 
+  const [pets, setPets] = useState([]);
+  const [selectedPet, setSelectedPet] = useState(null);
+  const [selectedFile, setSelectedFile] = useState(null);
+
+
 
   useEffect(() => {
     if (params?.id && user?.email) {
@@ -26,7 +37,7 @@ export default function ChatScreen() {
 
   const UserChat = async (id, currentUserEmail) => {
     let res = await GetUserDetails(id, currentUserEmail);
-    console.log('Response Data:', res.data);
+    // console.log('Response Data:', res.data);
 
     if (res.success) {
       setChatDetails(res.data);
@@ -42,14 +53,169 @@ export default function ChatScreen() {
       };
 
       setOtherUser(otherUserData); // Set other user details
-      console.log('Other User Details:', otherUserData);
+      // console.log('Other User Details:', otherUserData);
 
       navigation.setOptions({
         headerTitle: otherUserData.name, 
       });
-    } else {
-      console.log('Failed to fetch chat details'); 
+
+      fetchPets(otherUserData.email);
     }
+  };
+
+
+
+  const fetchPets = async (email) => {
+    const { data, error } = await supabase
+      .from('pets')
+      .select()
+      .eq('email', email);
+
+    if (error) {
+      console.log('Error fetching pets:', error.message);
+    } else {
+      // console.log('Pets of other user:', data); 
+      setPets(data);
+    }
+  };
+
+
+  // const uploadFileToSupabase = async (fileUri, petId) => {
+  //   try {
+  //     if (!petId) {
+  //       alert('Please select a pet before uploading.');
+  //       return;
+  //     }
+  
+  //     // Remove `file://` prefix if present (for Android)
+  //     const cleanUri = fileUri.startsWith('file://') ? fileUri.slice(7) : fileUri;
+  
+  //     // Fetch the file and convert it to a Blob
+  //     const response = await fetch(cleanUri);
+  //     if (!response.ok) {
+  //       throw new Error(`Failed to fetch file: ${response.statusText}`);
+  //     }
+  //     const blob = await response.blob();
+  
+  //     const fileName = fileUri.split('/').pop();
+  //     const filePath = `adoptdocument/${petId}/${fileName}`;
+  
+  //     console.log('Uploading to Supabase at:', filePath);
+  
+  //     const { data, error } = await supabase.storage
+  //       .from('uploads')
+  //       .upload(filePath, blob, {
+  //         contentType: blob.type,
+  //         upsert: true, // Allow overwriting files
+  //       });
+  
+  //     if (error) {
+  //       console.error('Supabase Storage Upload Error:', error.message);
+  //       throw new Error(error.message);
+  //     }
+  
+  //     console.log('File successfully uploaded:', data);
+  //     alert('File uploaded successfully.');
+  //   } catch (error) {
+  //     console.error('Upload failed:', error.message);
+  //     alert(`Upload failed: ${error.message}`);
+  //   }
+  // };
+  
+  
+  
+  const handleFileUpload = async () => {
+    if (!selectedPet) {
+      alert('Please select a pet before uploading.');
+      return;
+    }
+  
+    try {
+      const result = await DocumentPicker.getDocumentAsync({
+        type: '*/*', // Accept all file types
+        copyToCacheDirectory: true,
+      });
+  
+      console.log('Document Picker Result:', result);
+  
+      // Check if the file was selected
+      if (result.canceled || !result.assets || result.assets.length === 0) {
+        alert('File selection failed or no valid file selected.');
+        return;
+      }
+  
+      // Extract file details from the assets array
+      const file = result.assets[0];
+      const fileUri = file.uri;
+      const fileName = file.name;
+      const fileMimeType = file.mimeType;
+      const filePath = `adoptdocument/${selectedPet}/${fileName}`;
+  
+      // Fetch file and get it as a base64 string
+      const base64Data = await fetch(fileUri)
+        .then((response) => response.blob())
+        .then((blob) => {
+          return new Promise((resolve, reject) => {
+            const reader = new FileReader();
+            reader.onloadend = () => resolve(reader.result.split(',')[1]); // Get base64 string
+            reader.onerror = reject;
+            reader.readAsDataURL(blob);
+          });
+        });
+  
+      if (!base64Data) {
+        throw new Error('Failed to convert file to base64.');
+      }
+  
+      // Decode base64 data to ArrayBuffer
+      const arrayBuffer = decode(base64Data);
+  
+      // Upload to Supabase Storage
+      const { data: uploadData, error: uploadError } = await supabase.storage
+        .from('uploads')
+        .upload(filePath, arrayBuffer, {
+          contentType: fileMimeType, // Set correct MIME type
+          upsert: true, // Allow overwriting
+        });
+  
+      if (uploadError) {
+        console.error('Supabase Upload Error:', uploadError.message);
+        alert(`Failed to upload file: ${uploadError.message}`);
+        return;
+      }
+  
+      console.log('File uploaded successfully:', uploadData);
+  
+      // Insert file details into the 'documents' table
+      const { data: insertData, error: insertError } = await supabase
+        .from('documents')
+        .insert([
+          {
+            filepath: filePath,
+            userid: user.email,
+            otheruserid: otherUser.email, // Assuming otherUser contains the other user's info
+            petid: selectedPet,
+            chatid: params.id,
+          },
+        ]);
+  
+      if (insertError) {
+        console.error('Error inserting into documents table:', insertError.message);
+        alert(`Failed to save document details: ${insertError.message}`);
+        return;
+      }
+  
+      console.log('Document details inserted successfully:', insertData);
+      alert('File uploaded and details saved successfully!');
+    } catch (error) {
+      console.error('Error during file upload:', error.message);
+      alert(`Error during file upload: ${error.message}`);
+    }
+  };
+  
+
+  const handlePetSelection = (value) => {
+    setSelectedPet(value);
   };
 
   const fetchMessages = async () => {
@@ -125,7 +291,7 @@ export default function ChatScreen() {
 
   const handleAgreementChange = (newValue) => {
     setIsAgreed(newValue); // Update isAgreed when checkbox is toggled
-    console.log('Is Agreed:', newValue); // Log the value to check if it's updating
+    // console.log('Is Agreed:', newValue); // Log the value to check if it's updating
   };
 
   return (
@@ -144,37 +310,173 @@ export default function ChatScreen() {
           <Text style={styles.termsText}>Terms and Conditions</Text>
         </Pressable>
       )}
+           {/* Upload Button */}
+      <Pressable
+        style={styles.uploadButton}
+        onPress={() => setUploadModalVisible(true)}
+      >
+        <Text style={styles.uploadButtonText}>Upload</Text>
+      </Pressable>
 
-      {/* Floating Terms and Conditions with Blur */}
-      {isTermsVisible && (
-        <BlurView intensity={100} style={styles.blurContainer}>
-          <View style={styles.floatingTermsContainer}>
-            <ScrollView style={styles.modalContent}>
-              <Text style={styles.termsHeading}>Temporary Terms and Conditions</Text>
-              <Text style={styles.termsSubheading}>Effective Date: [Insert Date]</Text>
-              <Text style={styles.termsContent}>
-                These Temporary Terms and Conditions ("Terms") govern your use of [insert service name or website] ("Service").
-                {/* Add content of the Terms and Conditions here */}
-              </Text>
-              <View style={styles.checkboxContainer}>
-                <CheckBox value={isAgreed} onValueChange={handleAgreementChange} />
-                <Text style={styles.checkboxText}>I agree to the Terms and Conditions</Text>
-              </View>
-              <Pressable 
-                style={[styles.continueButton, { opacity: isAgreed ? 1 : 0.5 }]} 
-                disabled={!isAgreed}
-                onPress={() => {
-                  console.log('Continue clicked');
-                  // Temporarily go back to the previous screen (Chat screen)
-                  navigation.goBack();  // This will navigate back to the previous screen
-                }}
+      {/* Upload Modal */}
+      <Modal
+        animationType="slide"
+        transparent={true}
+        visible={isUploadModalVisible}
+        onRequestClose={() => setUploadModalVisible(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContainer}>
+            <Text style={styles.modalTitle}>Select the pet and Upload File</Text>
+            {pets.length > 0 ? (
+              <Picker
+                selectedValue={selectedPet}
+                onValueChange={handlePetSelection}
+                style={styles.picker}
               >
-                <Text style={styles.continueButtonText}>Continue</Text>
-              </Pressable>
-            </ScrollView>
+                <Picker.Item label="Select a pet" value={null} />
+                {pets.map((pet) => (
+                  <Picker.Item key={pet.id} label={pet.name} value={pet.id} />
+                ))}
+              </Picker>
+            ) : (
+              <Text style={styles.noPetsMessage}>
+                No pets found for this user.
+              </Text>
+            )}
+
+            <Pressable
+              style={styles.uploadFileButton}
+              onPress={handleFileUpload}
+            >
+              <Text style={styles.uploadFileButtonText}>Pick a File</Text>
+            </Pressable>
+
+            {selectedFile && (
+              <View style={styles.filePreviewContainer}>
+                <Text style={styles.fileName}>File Name: {selectedFile.name}</Text>
+                <Pressable
+                  style={styles.uploadFileButton}
+                  onPress={async () => {
+                    if (selectedFile && selectedFile.uri) {
+                      await uploadFileToSupabase(selectedFile.uri, selectedPet);
+                      setSelectedFile(null); // Clear selected file after upload
+                      setUploadModalVisible(false);
+                    } else {
+                      alert('No file selected for upload.');
+                    }
+                  }}
+                >
+                  <Text style={styles.uploadFileButtonText}>Upload File</Text>
+                </Pressable>
+
+
+
+              </View>
+            )}
+
+            <TouchableOpacity
+              onPress={() => setUploadModalVisible(false)}
+              style={styles.closeModalButton}
+            >
+              <Text style={styles.closeModalText}>Close</Text>
+            </TouchableOpacity>
           </View>
-        </BlurView>
-      )}
+        </View>
+      </Modal>
+
+
+    {/* Floating Terms and Conditions with Blur */}
+    {isTermsVisible && (
+  <BlurView intensity={100} style={styles.blurContainer}>
+    <View style={styles.floatingTermsContainer}>
+      <ScrollView style={styles.modalContent}>
+        <Text style={styles.termsHeading}>Terms and Conditions</Text>
+        
+        <Text style={styles.termsSubheading}>1. Acceptance of Terms</Text>
+        <Text style={styles.termsContent}>
+          By using PawTalk, you confirm that you are at least 18 years old or have the permission of a legal guardian. Continued use of the app constitutes agreement to these terms.
+        </Text>
+
+        <Text style={styles.termsSubheading}>2. User Responsibilities</Text>
+        <Text style={styles.termsContent}>
+          • Account Registration: You are responsible for providing accurate and truthful information when registering.{"\n"}
+          • Security: Protect your account login credentials. You are solely responsible for activities under your account.{"\n"}
+          • Appropriate Use: Use the app for its intended purposes. Do not engage in illegal, abusive, or harmful behavior on the platform.
+        </Text>
+
+        <Text style={styles.termsSubheading}>3. Pet Adoption Process</Text>
+        <Text style={styles.termsContent}>
+          • Certification Requirement: Both parties involved in pet adoption must sign and upload a notarized adoption certification document to finalize the process.{"\n"}
+          • Responsibility: The adopter assumes full responsibility for the care, well-being, and humane treatment of the adopted pet.{"\n"}
+          • Return Policy: If unable to care for the pet, the adopter must contact the previous owner or authorized parties.{"\n"}
+          • Fraud Prevention: Misrepresentation in the adoption process is strictly prohibited and may lead to account suspension or legal action.
+        </Text>
+
+        <Text style={styles.termsSubheading}>4. Content and Community Guidelines</Text>
+        <Text style={styles.termsContent}>
+          • Language Filtering: To maintain a respectful community, the app uses a language filtering algorithm to monitor and restrict harmful or inappropriate content.{"\n"}
+          • Ownership of Content: You retain ownership of any content you post but grant PawTalk the right to use, display, or distribute it for promotional or operational purposes.{"\n"}
+          • Prohibited Content: Do not post content that is offensive, defamatory, harmful, or violates copyright laws.
+        </Text>
+
+        <Text style={styles.termsSubheading}>5. Privacy Policy</Text>
+        <Text style={styles.termsContent}>
+          Your privacy is important to us. PawTalk collects and uses your data as outlined in our [Privacy Policy]. By using the app, you consent to data collection and usage in compliance with applicable laws.
+        </Text>
+
+        <Text style={styles.termsSubheading}>6. Limitations of Liability</Text>
+        <Text style={styles.termsContent}>
+          • PawTalk is not responsible for disputes or issues arising between users, including pet ownership conflicts.{"\n"}
+          • We do not guarantee uninterrupted access or the absence of errors in the app.{"\n"}
+          • To the extent permitted by law, PawTalk disclaims liability for damages resulting from the use or inability to use the app.
+        </Text>
+
+        <Text style={styles.termsSubheading}>7. Termination of Use</Text>
+        <Text style={styles.termsContent}>
+          PawTalk reserves the right to suspend or terminate your account if you violate these terms or engage in behavior detrimental to the community.
+        </Text>
+
+        <Text style={styles.termsSubheading}>8. Updates and Modifications</Text>
+        <Text style={styles.termsContent}>
+          We may update these terms periodically. Continued use of the app after changes constitutes acceptance of the revised terms.
+        </Text>
+
+        <Text style={styles.termsSubheading}>9. Contact Information</Text>
+        <Text style={styles.termsContent}>
+          For questions or concerns about these terms, please contact us at:{"\n"}
+          Email: support@pawtalkapp.com{"\n"}
+          
+        </Text>
+
+
+        {/* Downloadable file */}
+        <Pressable
+          onPress={() => Linking.openURL('https://zzaneglbcaviidinehsa.supabase.co/storage/v1/object/public/uploads/adoptdocument/Adoption-Agreement-PDF.pdf')}
+          style={styles.downloadLink}>
+          <Text style={styles.downloadLinkText}>Download Terms and Conditions</Text>
+        </Pressable>
+
+        <View style={styles.checkboxContainer}>
+          <CheckBox value={isAgreed} onValueChange={handleAgreementChange} />
+          <Text style={styles.checkboxText}>I agree to the Terms and Conditions</Text>
+        </View>
+
+        <Pressable
+          style={[styles.continueButton, { opacity: isAgreed ? 1 : 0.5 }]}
+          disabled={!isAgreed}
+          onPress={() => {
+            // console.log('Continue clicked');
+            navigation.goBack();
+          }}
+        >
+          <Text style={styles.continueButtonText}>Continue</Text>
+        </Pressable>
+      </ScrollView>
+    </View>
+  </BlurView>
+)}
+
     </View>
   );
 }
@@ -255,4 +557,111 @@ const styles = StyleSheet.create({
     color: 'white',
     fontSize: 18,
   },
+  downloadLink: {
+    marginTop: 15,
+    paddingVertical: 10,
+    alignItems: 'center',
+  },
+  downloadLinkText: {
+    color: '#007bff',
+    textDecorationLine: 'underline',
+    fontSize: 16,
+    textAlign: 'center',
+  },
+  uploadButton: {
+    position: 'absolute',
+    top: 50,
+    right: -10,
+    backgroundColor: '#007bff',
+    paddingHorizontal: 25,
+    paddingVertical: 5,
+    borderRadius: 99,
+    zIndex: 10,
+  },
+  uploadButtonText: {
+    color: 'white',
+    fontSize: 14,
+    fontWeight: 'bold',
+    textAlign: 'center',
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  modalContainer: {
+    width: '80%',
+    backgroundColor: 'white',
+    borderRadius: 10,
+    padding: 20,
+    alignItems: 'center',
+  },
+  picker: {
+    width: '100%',
+    height: 50, 
+    marginBottom: 20,
+  },
+  pickerItem: {
+    fontSize: 18,
+  },
+  
+  modalTitle: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    marginBottom: 20,
+  },
+  inputField: {
+    width: '100%',
+    padding: 10,
+    borderWidth: 1,
+    borderColor: '#ccc',
+    borderRadius: 5,
+    marginBottom: 20,
+  },
+  uploadFileButton: {
+    backgroundColor: '#007bff',
+    padding: 10,
+    borderRadius: 5,
+    width: '100%',
+    alignItems: 'center',
+    alignSelf: 'center',
+  },
+  uploadFileButtonText: {
+    color: 'white',
+    fontWeight: 'bold',
+  },
+  closeModalButton: {
+    marginTop: 20,
+  },
+  closeModalText: {
+    color: '#007bff',
+    textDecorationLine: 'underline',
+  },
+  
+  noPetsMessage: {
+    fontSize: 16,
+    color: '#999',
+    marginBottom: 20,
+  },
+  filePreviewContainer: {
+    marginTop: 20,
+    padding: 10,
+    borderWidth: 1,
+    borderColor: '#ddd',
+    borderRadius: 5,
+    backgroundColor: '#f9f9f9',
+  },
+  fileName: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    marginBottom: 5,
+  },
+  fileUri: {
+    fontSize: 14,
+    color: '#555',
+    marginBottom: 10,
+  },
+  
+  
 });
