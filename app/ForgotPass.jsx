@@ -8,19 +8,22 @@ import Input from '../components/Input';
 import Button from '../components/Button';
 import { supabase } from '../lib/supabase';
 import Icon from '../assets/icons';
+import { useEffect } from 'react';
 const ForgotPass = () => {
   const emailRef = useRef('');
+  const [loading, setLoading] = useState(false);
 
   const handleResetPassword = async () => {
-    try {
-      const email = emailRef.current;
-      if (!email) {
-        Alert.alert('Error', 'Please enter your email address.');
-        return;
-      }
+    const email = emailRef.current;
+    if (!email) {
+      Alert.alert('Error', 'Please enter your email address.');
+      return;
+    }
 
-      const { error } = await supabase.auth.resetPasswordForEmail('user@example.com', {
-        redirectTo: 'https://pawtalk.fun/account/update-password',
+    setLoading(true);
+    try {
+      const { error } = await supabase.auth.resetPasswordForEmail(email, {
+        redirectTo: 'https://pawtalk.fun/account/reset-password', // Redirects to the ResetPass.jsx page
       });
 
       if (error) {
@@ -30,6 +33,8 @@ const ForgotPass = () => {
       }
     } catch (err) {
       Alert.alert('Error', 'Something went wrong. Please try again.');
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -51,9 +56,9 @@ const ForgotPass = () => {
           <Input
             icon={<Icon name="mail" size={26} strokeWidth={1.6} />}
             placeholder="Enter your email"
-            onChangeText={value => (emailRef.current = value)}
+            onChangeText={(value) => (emailRef.current = value)}
           />
-          <Button title="Reset Password" onPress={handleResetPassword} />
+          <Button title="Reset Password" loading={loading} onPress={handleResetPassword} />
         </View>
       </View>
     </ScreenWrapper>
