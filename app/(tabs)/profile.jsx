@@ -185,9 +185,17 @@ const UserHeader = ({ user, router, handleLogout }) => {
                     </View>
                     <View style={{ alignItems: 'center', gap: 4 }}>
                         <Text style={styles.userName}>{user?.name}</Text>
+                        
+                        <View>
+                            <Pressable style={{ flexDirection: 'row', gap: 4, color: 'red'}} onPress={() => router.push('verifyProfile')}>
+                                <Ionicons name="shield-checkmark-outline" size={24} color="black" />
+                            <Text>Verify Account</Text>
+                        </Pressable>
+                        </View>
+
                         <Text style={styles.infoText}>{user?.address}</Text>
                     </View>
-                    <View style={{ gap: 10 }}>
+                    <View style={{alignItems: 'center', gap: 10 }}>
                         <View style={styles.info}>
                             <Icon name="mail" size={20} color={theme.colors.textLight} />
                             <Text style={styles.infoText}>{user?.email}</Text>
