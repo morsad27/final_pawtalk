@@ -23,7 +23,7 @@ import ThreeDotsCircle from './ThreeDotsCircle'
 import ThreeDotsHorizontal from './ThreeDotsHorizontal'
 import Openeye from './Openeye'
 import Offeye from './Offeye'
-
+import Susi from './Susi'
 
 
 
@@ -50,7 +50,8 @@ const icons= {
     threeDotsCircle:ThreeDotsCircle,
     threeDotsHorizontal:ThreeDotsHorizontal,
     open:Openeye,
-    off:Offeye
+    off:Offeye,
+    susi:Susi
 
 
 

@@ -2,7 +2,6 @@ import { Alert, Pressable, StatusBar, StyleSheet, Text, TextInput, View } from '
 import React, { useRef, useState } from 'react';
 import ScreenWrapper from '../components/ScreenWrapper';
 import { theme } from '../constants/theme';
-import BackButton from '../components/BackButton';
 import { useRouter } from 'expo-router';
 import { hp, wp } from '../helpers/common';
 import Input from '../components/Input';
@@ -71,7 +70,10 @@ const Login = () => {
     <ScreenWrapper bg="white">
       <StatusBar style='dark' />
       <View style={styles.container}>
-        <BackButton router={router} />
+
+      <Pressable onPress={() => router.back()} style={styles.button}>
+      <Icon name="arrowLeft" strokeWidth={2.5} size={26} color={theme.colors.text} />
+    </Pressable>
 
         {/* Welcome */}
         <View>
@@ -108,7 +110,7 @@ const Login = () => {
 
           </View>
           
-          <Pressable onPress={() => router.push('/ForgotPass')}>
+          <Pressable onPress={() => router.push('/ResetPassword')}>
             <Text style={[styles.loginText, {color: theme.colors.primaryDark, fontWeight: theme.fonts.semibold}]}>
               Forgot Password?
             </Text>
@@ -144,6 +146,7 @@ export default Login;
 
 const styles = StyleSheet.create({
   container: {
+    paddingTop: 50,
     flex: 1,
     gap: 45,
     paddingHorizontal: wp(5),
@@ -179,5 +182,13 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     color: theme.colors.text,
     fontSize: hp(1.6),
+
   },
+
+  button: {
+    alignSelf: 'flex-start',
+    padding: 5,
+    borderRadius: theme.radius.sm,
+    backgroundColor: 'rgba(0,0,0,0.07)'
+  }
 });
