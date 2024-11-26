@@ -116,11 +116,7 @@ const Login = () => {
             </Text>
           </Pressable>
 
-          <Pressable onPress={() => router.push('/ResetPass')}>
-            <Text style={[styles.forgotPassword, {color: theme.colors.primaryDark, fontWeight: theme.fonts.semibold}]}>
-              Forgot Password?
-            </Text>
-          </Pressable>
+          
 
           
 
