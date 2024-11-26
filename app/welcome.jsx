@@ -26,7 +26,7 @@ const Welcome = () => {
         </View>
         <View style={styles.footer}>
           <Button
-          title="Getting Started"
+          title="Get Started"
           buttonStyle={{marginHorizontal: wp(3)}}
           onPress={()=> router.push('signUp')}
           />
