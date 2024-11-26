@@ -47,7 +47,9 @@ const SignUp = () => {
     <ScreenWrapper bg="white">
       <StatusBar style='dark' />
       <View style={styles.container}>
-        <BackButton router={router} />
+      <Pressable onPress={() => router.back()} style={styles.button}>
+      <Icon name="arrowLeft" strokeWidth={2.5} size={26} color={theme.colors.text} />
+    </Pressable>
 
         {/* Welcome */}
         <View>
@@ -89,7 +91,11 @@ const SignUp = () => {
             </Pressable>
           </View>
 
-          <Text style={styles.forgotPassword}>Forgot Password?</Text>
+          <Pressable onPress={() => router.push('/ResetPassword')}>
+            <Text style={[styles.loginText, {color: theme.colors.primaryDark, fontWeight: theme.fonts.semibold}]}>
+              Forgot Password?
+            </Text>
+          </Pressable>
 
           {/* Sign Up button */}
           <Button title={'Sign Up'} loading={loading} onPress={onSubmit} />
@@ -149,4 +155,11 @@ const styles = StyleSheet.create({
     color: theme.colors.text,
     fontSize: hp(1.6),
   },
+
+  button: {
+    alignSelf: 'flex-start',
+    padding: 5,
+    borderRadius: theme.radius.sm,
+    backgroundColor: 'rgba(0,0,0,0.07)'
+  }
 });
