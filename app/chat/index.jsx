@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { View, Text, StyleSheet, Pressable, ScrollView, Modal, TextInput, TouchableOpacity } from 'react-native';
+import { View, Text, StyleSheet, Pressable, ScrollView, Modal, TextInput, TouchableOpacity, ActivityIndicator, Alert  } from 'react-native';
 import { useLocalSearchParams, useNavigation } from 'expo-router';
 import { GetUserDetails } from '../../services/postService';
 import { useAuth } from '../../contexts/AuthContext';
@@ -11,6 +11,7 @@ import { Linking } from 'react-native';
 import { Picker } from '@react-native-picker/picker';
 import * as DocumentPicker from 'expo-document-picker';
 import { decode } from 'base64-arraybuffer';
+
 
 
 export default function ChatScreen() {
@@ -26,6 +27,8 @@ export default function ChatScreen() {
   const [pets, setPets] = useState([]);
   const [selectedPet, setSelectedPet] = useState(null);
   const [selectedFile, setSelectedFile] = useState(null);
+  const [isUploading, setIsUploading] = useState(false);
+  
 
 
 
@@ -79,57 +82,13 @@ export default function ChatScreen() {
     }
   };
 
-
-  // const uploadFileToSupabase = async (fileUri, petId) => {
-  //   try {
-  //     if (!petId) {
-  //       alert('Please select a pet before uploading.');
-  //       return;
-  //     }
-  
-  //     // Remove `file://` prefix if present (for Android)
-  //     const cleanUri = fileUri.startsWith('file://') ? fileUri.slice(7) : fileUri;
-  
-  //     // Fetch the file and convert it to a Blob
-  //     const response = await fetch(cleanUri);
-  //     if (!response.ok) {
-  //       throw new Error(`Failed to fetch file: ${response.statusText}`);
-  //     }
-  //     const blob = await response.blob();
-  
-  //     const fileName = fileUri.split('/').pop();
-  //     const filePath = `adoptdocument/${petId}/${fileName}`;
-  
-  //     console.log('Uploading to Supabase at:', filePath);
-  
-  //     const { data, error } = await supabase.storage
-  //       .from('uploads')
-  //       .upload(filePath, blob, {
-  //         contentType: blob.type,
-  //         upsert: true, // Allow overwriting files
-  //       });
-  
-  //     if (error) {
-  //       console.error('Supabase Storage Upload Error:', error.message);
-  //       throw new Error(error.message);
-  //     }
-  
-  //     console.log('File successfully uploaded:', data);
-  //     alert('File uploaded successfully.');
-  //   } catch (error) {
-  //     console.error('Upload failed:', error.message);
-  //     alert(`Upload failed: ${error.message}`);
-  //   }
-  // };
-  
-  
   
   const handleFileUpload = async () => {
     if (!selectedPet) {
       alert('Please select a pet before uploading.');
       return;
     }
-  
+    setIsUploading(true); // Start loading
     try {
       const result = await DocumentPicker.getDocumentAsync({
         type: '*/*', // Accept all file types
@@ -141,6 +100,7 @@ export default function ChatScreen() {
       // Check if the file was selected
       if (result.canceled || !result.assets || result.assets.length === 0) {
         alert('File selection failed or no valid file selected.');
+        setIsUploading(false); // Stop loading
         return;
       }
   
@@ -181,7 +141,9 @@ export default function ChatScreen() {
       if (uploadError) {
         console.error('Supabase Upload Error:', uploadError.message);
         alert(`Failed to upload file: ${uploadError.message}`);
+        setIsUploading(false); // Stop loading
         return;
+        
       }
   
       console.log('File uploaded successfully:', uploadData);
@@ -202,14 +164,17 @@ export default function ChatScreen() {
       if (insertError) {
         console.error('Error inserting into documents table:', insertError.message);
         alert(`Failed to save document details: ${insertError.message}`);
+        setIsUploading(false); // Stop loading
         return;
       }
   
       console.log('Document details inserted successfully:', insertData);
-      alert('File uploaded and details saved successfully!');
+      Alert.alert('Upload success','Kindly wait for your adoption confirmation');
     } catch (error) {
       console.error('Error during file upload:', error.message);
       alert(`Error during file upload: ${error.message}`);
+    }finally{
+      setIsUploading(false); // Stop loading
     }
   };
   
@@ -320,39 +285,37 @@ export default function ChatScreen() {
 
       {/* Upload Modal */}
       <Modal
-        animationType="slide"
-        transparent={true}
-        visible={isUploadModalVisible}
-        onRequestClose={() => setUploadModalVisible(false)}
-      >
-        <View style={styles.modalOverlay}>
-          <View style={styles.modalContainer}>
-            <Text style={styles.modalTitle}>Select the pet and Upload File</Text>
-            {pets.length > 0 ? (
-              <Picker
-                selectedValue={selectedPet}
-                onValueChange={handlePetSelection}
-                style={styles.picker}
-              >
-                <Picker.Item label="Select a pet" value={null} />
-                {pets.map((pet) => (
-                  <Picker.Item key={pet.id} label={pet.name} value={pet.id} />
-                ))}
-              </Picker>
-            ) : (
-              <Text style={styles.noPetsMessage}>
-                No pets found for this user.
-              </Text>
-            )}
-
-            <Pressable
-              style={styles.uploadFileButton}
-              onPress={handleFileUpload}
+      animationType="slide"
+      transparent={true}
+      visible={isUploadModalVisible}
+      onRequestClose={() => setUploadModalVisible(false)}
+    >
+      <View style={styles.modalOverlay}>
+        <View style={styles.modalContainer}>
+          <Text style={styles.modalTitle}>Select the pet and Upload File</Text>
+          {pets.length > 0 ? (
+            <Picker
+              selectedValue={selectedPet}
+              onValueChange={handlePetSelection}
+              style={styles.picker}
             >
+              <Picker.Item label="Select a pet" value={null} />
+              {pets.map((pet) => (
+                <Picker.Item key={pet.id} label={pet.name} value={pet.id} />
+              ))}
+            </Picker>
+          ) : (
+            <Text style={styles.noPetsMessage}>No pets found for this user.</Text>
+          )}
+
+          {isUploading ? ( // Show spinner or loading text
+            <ActivityIndicator size="large" color="#007bff" />
+          ) : (
+            <Pressable style={styles.uploadFileButton} onPress={handleFileUpload}>
               <Text style={styles.uploadFileButtonText}>Pick a File</Text>
             </Pressable>
-
-            {selectedFile && (
+          )}
+            {/* {selectedFile && (
               <View style={styles.filePreviewContainer}>
                 <Text style={styles.fileName}>File Name: {selectedFile.name}</Text>
                 <Pressable
@@ -373,17 +336,17 @@ export default function ChatScreen() {
 
 
               </View>
-            )}
+            )} */}
 
             <TouchableOpacity
-              onPress={() => setUploadModalVisible(false)}
-              style={styles.closeModalButton}
-            >
-              <Text style={styles.closeModalText}>Close</Text>
-            </TouchableOpacity>
-          </View>
+            onPress={() => setUploadModalVisible(false)}
+            style={styles.closeModalButton}
+          >
+            <Text style={styles.closeModalText}>Close</Text>
+          </TouchableOpacity>
         </View>
-      </Modal>
+      </View>
+    </Modal>
 
 
     {/* Floating Terms and Conditions with Blur */}
