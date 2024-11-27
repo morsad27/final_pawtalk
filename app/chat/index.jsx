@@ -169,7 +169,7 @@ export default function ChatScreen() {
       }
   
       console.log('Document details inserted successfully:', insertData);
-      Alert.alert('Upload success','Kindly wait for your adoption confirmation');
+      Alert.alert('Upload success','Kindly wait for adoption confirmation');
     } catch (error) {
       console.error('Error during file upload:', error.message);
       alert(`Error during file upload: ${error.message}`);

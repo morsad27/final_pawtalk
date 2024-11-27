@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
   View,
   Text,
@@ -16,6 +16,7 @@ import Button from '../components/Button';
 import Icon from '../assets/icons';
 import { supabase } from '../lib/supabase';
 import { theme } from '../constants/theme';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const ResetPassword = () => {
   const [email, setEmail] = useState('');
@@ -25,15 +26,69 @@ const ResetPassword = () => {
   const [showPassword, setShowPassword] = useState(false); // Manage password visibility
   const [step, setStep] = useState(1); // Step 1: Enter email, Step 2: Enter OTP & password
   const [loading, setLoading] = useState(false);
+  const [otpAttempts, setOtpAttempts] = useState({}); // Track OTP attempts
   const router = useRouter();
 
+  useEffect(() => {
+    // Load OTP attempts from AsyncStorage
+    const loadOtpAttempts = async () => {
+      try {
+        const storedAttempts = await AsyncStorage.getItem('otpAttempts');
+        if (storedAttempts) {
+          setOtpAttempts(JSON.parse(storedAttempts));
+        }
+      } catch (error) {
+        console.error('Failed to load OTP attempts:', error);
+      }
+    };
+
+    loadOtpAttempts();
+
+    // Reset OTP attempts at midnight
+    const resetOtpAttempts = async () => {
+      await AsyncStorage.setItem('otpAttempts', JSON.stringify({}));
+      setOtpAttempts({});
+    };
+
+    const midnight = new Date();
+    midnight.setHours(24, 0, 0, 0);
+    const timeout = midnight.getTime() - Date.now();
+    const timer = setTimeout(resetOtpAttempts, timeout);
+
+    return () => clearTimeout(timer);
+  }, []);
+
+
+
   const handleSendMagicLink = async () => {
+    const emailKey = email.trim();
+
+    if (!emailKey) {
+      Alert.alert('Error', 'Please enter a valid email.');
+      return;
+    }
+
+    // Check OTP attempts for the current email
+    if (otpAttempts[emailKey] && otpAttempts[emailKey] >= 3) {
+      Alert.alert('Limit Reached', 'You can request an OTP only 3 times per day.');
+      return;
+    }
+
     try {
       setLoading(true);
-      const { error } = await supabase.auth.signInWithOtp({ email: email.trim() });
+      const { error } = await supabase.auth.signInWithOtp({ email: emailKey });
       setLoading(false);
 
       if (error) throw error;
+
+      // Update OTP attempts and save to AsyncStorage
+      const updatedAttempts = {
+        ...otpAttempts,
+        [emailKey]: (otpAttempts[emailKey] || 0) + 1,
+      };
+      setOtpAttempts(updatedAttempts);
+      await AsyncStorage.setItem('otpAttempts', JSON.stringify(updatedAttempts));
+
       Alert.alert('Success', 'OTP sent to your email.');
       setStep(2);
     } catch (error) {
@@ -42,7 +97,7 @@ const ResetPassword = () => {
     }
   };
 
-  const handleResetPassword = async () => {
+   const handleResetPassword = async () => {
     if (password !== confirmPassword) {
       Alert.alert('Error', 'Passwords do not match.');
       return;
@@ -70,74 +125,75 @@ const ResetPassword = () => {
     }
   };
 
+  
   return (
     <KeyboardAvoidingView
-      style={styles.container}
-      behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-    >
-      <ScrollView contentContainerStyle={styles.scrollContainer}>
-        <Pressable onPress={() => router.back()} style={styles.backButton}>
-          <Icon name="arrowLeft" strokeWidth={2.5} size={26} color={theme.colors.text} />
-        </Pressable>
+    style={styles.container}
+    behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+  >
+    <ScrollView contentContainerStyle={styles.scrollContainer}>
+      <Pressable onPress={() => router.back()} style={styles.backButton}>
+        <Icon name="arrowLeft" strokeWidth={2.5} size={26} color={theme.colors.text} />
+      </Pressable>
 
-        <View style={styles.header}>
-          <Text style={styles.title}>Reset Password</Text>
-          <Text style={styles.subtitle}>
-            {step === 1 ? 'Enter your email to receive an OTP.' : 'Enter the OTP and set a new password.'}
-          </Text>
+      <View style={styles.header}>
+        <Text style={styles.title}>Reset Password</Text>
+        <Text style={styles.subtitle}>
+          {step === 1 ? 'Enter your email to receive an OTP.' : 'Enter the OTP and set a new password.'}
+        </Text>
+      </View>
+
+      {step === 1 ? (
+        <View style={styles.form}>
+          <Input
+            icon={<Icon name="mail" size={26} strokeWidth={1.6} />}
+            placeholder="Enter your email"
+            onChangeText={setEmail}
+          />
+          <Button title="Send OTP" loading={loading} onPress={handleSendMagicLink} />
         </View>
-
-        {step === 1 ? (
-          <View style={styles.form}>
+      ) : (
+        <View style={styles.form}>
+          <Input
+            icon={<Icon name="susi" size={26} strokeWidth={1.6} />}
+            placeholder="Enter OTP"
+            onChangeText={setOtp}
+          />
+          <View style={styles.passwordContainer}>
             <Input
-              icon={<Icon name="mail" size={26} strokeWidth={1.6} />}
-              placeholder="Enter your email"
-              onChangeText={setEmail}
+              icon={<Icon name="lock" size={26} strokeWidth={1.6} />}
+              placeholder="Enter new password"
+              secureTextEntry={!showPassword}
+              onChangeText={setPassword}
             />
-            <Button title="Send OTP" loading={loading} onPress={handleSendMagicLink} />
-          </View>
-        ) : (
-          <View style={styles.form}>
-            <Input
-              icon={<Icon name="susi" size={26} strokeWidth={1.6} />}
-              placeholder="Enter OTP"
-              onChangeText={setOtp}
-            />
-            <View style={styles.passwordContainer}>
-              <Input
-                icon={<Icon name="lock" size={26} strokeWidth={1.6} />}
-                placeholder="Enter new password"
-                secureTextEntry={!showPassword} // Toggle visibility
-                onChangeText={setPassword}
+            <Pressable onPress={() => setShowPassword(!showPassword)} style={styles.showPasswordIcon}>
+              <Icon
+                name={showPassword ? "open" : "off"}
+                size={25}
+                color={theme.colors.gray}
               />
-              <Pressable onPress={() => setShowPassword(!showPassword)} style={styles.showPasswordIcon}>
-                <Icon
-                  name={showPassword ? "open" : "off"} // Change icon based on visibility
-                  size={25}
-                  color={theme.colors.gray}
-                />
-              </Pressable>
-            </View>
-            <View>
+            </Pressable>
+          </View>
+          <View>
             <Input
               icon={<Icon name="lock" size={26} strokeWidth={1.6} />}
               placeholder="Confirm new password"
-              secureTextEntry={!showPassword} // Toggle visibility
+              secureTextEntry={!showPassword}
               onChangeText={setConfirmPassword}
             />
-              <Pressable onPress={() => setShowPassword(!showPassword)} style={styles.showPasswordIcon}>
-                <Icon
-                  name={showPassword ? "open" : "off"} // Change icon based on visibility
-                  size={25}
-                  color={theme.colors.gray}
-                />
-              </Pressable>
-            </View>
-            <Button title="Reset Password" loading={loading} onPress={handleResetPassword} />
+            <Pressable onPress={() => setShowPassword(!showPassword)} style={styles.showPasswordIcon}>
+              <Icon
+                name={showPassword ? "open" : "off"}
+                size={25}
+                color={theme.colors.gray}
+              />
+            </Pressable>
           </View>
-        )}
-      </ScrollView>
-    </KeyboardAvoidingView>
+          <Button title="Reset Password" loading={loading} onPress={handleResetPassword} />
+        </View>
+      )}
+    </ScrollView>
+  </KeyboardAvoidingView>
   );
 };
 
