@@ -8,6 +8,7 @@ import Favorite from '../(tabs)/favorite';
 import Documents from '../(tabs)/documents';
 import Home from '../(tabs)/home';
 import Adopt from '../(tabs)/adopt';
+import Verify from './verify';
 
 const Tab = createBottomTabNavigator();
 
@@ -67,6 +68,8 @@ export default function HomeTabs() {
             iconName = 'chatbox-ellipses';
           } else if (route.name === 'Profile') {
             iconName = 'person';
+          }else if (route.name === 'Verify') {
+            iconName = 'shield-checkmark';
           }
 
           return <Ionicons name={iconName} size={size} color={color} />;
@@ -81,6 +84,7 @@ export default function HomeTabs() {
           <Tab.Screen name="Adopt" component={Adopt} />
           <Tab.Screen name="Home" component={Home} />
           <Tab.Screen name="Documents" component={Documents} />
+          <Tab.Screen name="Verify" component={Verify} />
         </>
       ) : (
         <>
