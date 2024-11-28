@@ -41,6 +41,6 @@ Join our community of developers creating universal apps.
 - [PawTalk](https://pawtalk.fun): Visit our website.
 
    ```bash
-                                                                   PawTalk ❤️
+                                          PawTalk ❤️
    ```
 
