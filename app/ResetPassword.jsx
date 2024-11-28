@@ -110,7 +110,7 @@ const ResetPassword = () => {
       };
       setOtpAttempts(updatedAttempts);
       await AsyncStorage.setItem('otpAttempts', JSON.stringify(updatedAttempts));
-  
+      
       Alert.alert('Success', 'OTP sent to your email.');
       setStep(2);
     } catch (error) {
@@ -138,7 +138,7 @@ const ResetPassword = () => {
       setLoading(false);
 
       if (updateError) throw updateError;
-      Alert.alert('Success', 'Password reset successfully!');
+      Alert.alert('Success', 'You can now login to your account.');
       router.replace('/login');
     } catch (error) {
       setLoading(false);
