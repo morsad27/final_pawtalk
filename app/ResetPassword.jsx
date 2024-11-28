@@ -1,14 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import {
-  View,
-  Text,
-  StyleSheet,
-  Pressable,
-  Alert,
-  KeyboardAvoidingView,
-  ScrollView,
-  Platform,
-} from 'react-native';
+import {View, Text, StyleSheet, Pressable, Alert, KeyboardAvoidingView, ScrollView, Platform,} from 'react-native';
 import { useRouter } from 'expo-router';
 import { wp, hp } from '../helpers/common';
 import Input from '../components/Input';
@@ -17,6 +8,7 @@ import Icon from '../assets/icons';
 import { supabase } from '../lib/supabase';
 import { theme } from '../constants/theme';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+
 
 const ResetPassword = () => {
   const [email, setEmail] = useState('');
@@ -28,7 +20,7 @@ const ResetPassword = () => {
   const [loading, setLoading] = useState(false);
   const [otpAttempts, setOtpAttempts] = useState({}); // Track OTP attempts
   const router = useRouter();
-
+ 
   useEffect(() => {
     // Load OTP attempts from AsyncStorage
     const loadOtpAttempts = async () => {
@@ -62,25 +54,55 @@ const ResetPassword = () => {
 
   const handleSendMagicLink = async () => {
     const emailKey = email.trim();
-
+  
     if (!emailKey) {
       Alert.alert('Error', 'Please enter a valid email.');
       return;
     }
-
+  
     // Check OTP attempts for the current email
     if (otpAttempts[emailKey] && otpAttempts[emailKey] >= 3) {
       Alert.alert('Limit Reached', 'You can request an OTP only 3 times per day.');
       return;
     }
-
+  
     try {
       setLoading(true);
+  
+      // Check if the email exists in the users table
+      const { data: user, error: userError } = await supabase
+        .from('users')
+        .select('id')
+        .eq('email', emailKey)
+        .single();
+  
+      if (userError) {
+        setLoading(false);
+        Alert.alert(
+          'Email Not Registered',
+          'This email is not registered. Please register first.',
+          [
+            {
+              text: 'OK',
+              onPress: () => router.push('/signUp'), // Navigate to sign-up page
+            },
+          ]
+        );
+        return;
+      }
+  
+      if (!user) {
+        setLoading(false);
+        Alert.alert('Error', 'This email is not registered. Please register first.');
+        return;
+      }
+  
+      // Proceed to send OTP if the email exists
       const { error } = await supabase.auth.signInWithOtp({ email: emailKey });
       setLoading(false);
-
+  
       if (error) throw error;
-
+  
       // Update OTP attempts and save to AsyncStorage
       const updatedAttempts = {
         ...otpAttempts,
@@ -88,7 +110,7 @@ const ResetPassword = () => {
       };
       setOtpAttempts(updatedAttempts);
       await AsyncStorage.setItem('otpAttempts', JSON.stringify(updatedAttempts));
-
+  
       Alert.alert('Success', 'OTP sent to your email.');
       setStep(2);
     } catch (error) {
