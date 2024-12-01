@@ -14,6 +14,7 @@ import { uploadFile } from '../../services/imageService'; // Existing upload ser
 import Colors from '../../constants/Colors';
 import { useNavigation } from '@react-navigation/native';
 import { supabase } from '../../lib/supabase'; // Import Supabase client
+import { Ionicons } from '@expo/vector-icons'; // Import Ionicons for icon
 
 export default function UploadVerificationDocs() {
   const { user } = useAuth(); // Access user data
@@ -66,14 +67,14 @@ export default function UploadVerificationDocs() {
 
     try {
       // Upload ID image
-      const idUploadResult = await uploadFile('user-docs', idImage, true);
+      const idUploadResult = await uploadFile(`user-docs/${user.name}`, idImage, true);
       if (!idUploadResult.success) throw new Error('Failed to upload ID image.');
 
       // Upload Selfie image
-      const selfieUploadResult = await uploadFile('user-docs', selfieImage, true);
+      const selfieUploadResult = await uploadFile(`user-docs/${user.name}`, selfieImage, true);
       if (!selfieUploadResult.success) throw new Error('Failed to upload selfie.');
 
-      // Prepare database record
+      // Prepare database record for verification
       const verificationData = {
         user_id: user.id, // Use authenticated user's ID
         user_name: user.name,
@@ -82,7 +83,7 @@ export default function UploadVerificationDocs() {
         status: 'pending', // Set default status for verification
       };
 
-      // Insert record into the database (via Supabase)
+      // Insert record into the verification_requests table (via Supabase)
       const { data, error } = await supabase
         .from('verification_requests') // Replace with your table name
         .insert(verificationData);
@@ -92,8 +93,39 @@ export default function UploadVerificationDocs() {
         throw new Error('Failed to save verification data.');
       }
 
-      ToastAndroid.show('Documents uploaded successfully!', ToastAndroid.SHORT);
-      navigation.goBack();
+      // Update the user's verification status in the users table
+      const { error: updateError } = await supabase
+        .from('users')
+        .update({ status: 'pending' }) // Update verification status
+        .eq('id', user.id); // Ensure you're updating the correct user
+
+      if (updateError) {
+        console.error('Failed to update user verification status:', updateError.message);
+        throw new Error('Failed to update user verification status.');
+      }
+
+      ToastAndroid.show('Documents uploaded and verification status set to pending!', ToastAndroid.SHORT);
+      ToastAndroid.show('Please reload the app', ToastAndroid.SHORT);
+
+      // Fetch the updated user data to reflect the new status
+      const { data: updatedUser, error: fetchError } = await supabase
+        .from('users')
+        .select('status') // Select the status field
+        .eq('id', user.id)
+        .single();
+
+      if (fetchError) {
+        console.error('Error fetching updated user data:', fetchError.message);
+        throw new Error('Failed to fetch updated user data.');
+      }
+
+      // Update the local user context with the new status if needed
+      // Assuming useAuth context provides a way to set user data
+      user.status = updatedUser.status;
+
+      // Navigate to the Profile screen after successful upload and status update
+      navigation.navigate('Profile'); // Replace 'Profile' with your actual profile screen name
+
     } catch (error) {
       ToastAndroid.show(error.message || 'An error occurred.', ToastAndroid.SHORT);
     } finally {
@@ -103,31 +135,45 @@ export default function UploadVerificationDocs() {
 
   return (
     <View style={styles.container}>
+      {/* Back Button */}
+      <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
+        <Ionicons name="arrow-back" size={28} color={Colors.PRIMARY} />
+      </TouchableOpacity>
+
       <Text style={styles.title}>Upload Verification Documents</Text>
 
       {/* ID Upload Section */}
-      <TouchableOpacity
-        style={styles.imagePicker}
-        onPress={() => pickImage(setIdImage)}
-      >
-        {idImage ? (
-          <Image source={{ uri: idImage }} style={styles.imagePreview} />
-        ) : (
-          <Text style={styles.placeholderText}>Upload ID Image</Text>
-        )}
-      </TouchableOpacity>
+      <View style={styles.uploadSection}>
+        <TouchableOpacity
+          style={styles.imagePicker}
+          onPress={() => pickImage(setIdImage)}
+        >
+          {idImage ? (
+            <Image source={{ uri: idImage }} style={styles.imagePreview} />
+          ) : (
+            <Text style={styles.placeholderText}>Upload ID Image</Text>
+          )}
+        </TouchableOpacity>
+        <Text style={styles.checkText}>Check photo</Text>
+        <Text style={styles.instructionText}>- Can you read the details?</Text>
+        <Text style={styles.instructionText}>- Is the photo clear?</Text>
+      </View>
 
       {/* Selfie Capture Section */}
-      <TouchableOpacity
-        style={styles.imagePicker}
-        onPress={captureSelfie}
-      >
-        {selfieImage ? (
-          <Image source={{ uri: selfieImage }} style={styles.imagePreview} />
-        ) : (
-          <Text style={styles.placeholderText}>Capture Selfie</Text>
-        )}
-      </TouchableOpacity>
+      <View style={styles.uploadSection}>
+        <TouchableOpacity
+          style={styles.imagePicker}
+          onPress={captureSelfie}
+        >
+          {selfieImage ? (
+            <Image source={{ uri: selfieImage }} style={styles.imagePreview} />
+          ) : (
+            <Text style={styles.placeholderText}>Capture Selfie</Text>
+          )}
+        </TouchableOpacity>
+        <Text style={styles.instructionText}>Ensure that your face is clearly visible.</Text>
+        <Text style={styles.instructionText}>Please wait for 5-10 minutes for the verification process.</Text>
+      </View>
 
       {/* Upload Button */}
       {loading ? (
@@ -137,11 +183,6 @@ export default function UploadVerificationDocs() {
           <Text style={styles.buttonText}>Verify Account</Text>
         </TouchableOpacity>
       )}
-
-      {/* Back Button */}
-      <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
-        <Text style={styles.backButtonText}>Back</Text>
-      </TouchableOpacity>
     </View>
   );
 }
@@ -151,12 +192,18 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: Colors.BACKGROUND,
     padding: 20,
-    alignItems: 'center',
+    justifyContent: 'center', // This will center the button vertically
   },
   title: {
-    fontSize: 20,
+    marginTop: 25,
+    fontSize: 22,
     fontWeight: 'bold',
     marginBottom: 20,
+    textAlign: 'center',
+  },
+  uploadSection: {
+    marginBottom: 30,
+    alignItems: 'center',
   },
   imagePicker: {
     width: 200,
@@ -165,7 +212,9 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     borderRadius: 10,
-    marginBottom: 20,
+    marginBottom: 10,
+    borderWidth: 1,
+    borderColor: Colors.GRAY,
   },
   imagePreview: {
     width: '100%',
@@ -174,6 +223,19 @@ const styles = StyleSheet.create({
   },
   placeholderText: {
     color: Colors.GRAY,
+    fontSize: 16,
+    textAlign: 'center',
+  },
+  checkText: {
+    fontSize: 18,
+    fontWeight: '500',
+    marginTop: 10,
+  },
+  instructionText: {
+    fontSize: 14,
+    color: Colors.GRAY,
+    textAlign: 'left',
+    marginTop: 5,
   },
   uploadButton: {
     backgroundColor: Colors.PRIMARY,
@@ -181,16 +243,19 @@ const styles = StyleSheet.create({
     borderRadius: 10,
     width: '80%',
     alignItems: 'center',
+    marginTop: 20,
+    alignSelf: 'center', // Centers the button horizontally
   },
   buttonText: {
     color: Colors.WHITE,
     fontWeight: 'bold',
+    justifyContent: 'center',
+    fontSize: 16,
   },
   backButton: {
-    marginTop: 15,
-  },
-  backButtonText: {
-    color: Colors.PRIMARY,
-    fontWeight: 'bold',
+    position: 'absolute',
+    top: 50,
+    left: 20,
+    zIndex: 1,
   },
 });
