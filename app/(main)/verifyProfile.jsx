@@ -29,7 +29,7 @@ export default function UploadVerificationDocs() {
       mediaTypes: ImagePicker.MediaTypeOptions.Images,
       allowsEditing: true,
       quality: 1,
-      cameraType: ImagePicker.CameraType.back, // Use the front camera
+      cameraType: ImagePicker.CameraType.bacck, // Use the front camera
     });
 
     if (!result.canceled) {
