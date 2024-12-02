@@ -16,6 +16,7 @@
   import MaterialIcons from '@expo/vector-icons/MaterialIcons';
   import Colors from '../../constants/Colors'
   import Ionicons from '@expo/vector-icons/Ionicons';
+  
 
   var limit = 0;
 
@@ -26,6 +27,7 @@
     const [hasMore, setHasMore] = useState(true);
     const [loading, setLoading] = useState(true); // Loading state for the profile data
     const [verificationStatus, setVerificationStatus] = useState('pending'); // State for verification status
+    const [status, setStatus] = useState(null);
 
     const onLogout = async () => {
       const { error } = await supabase.auth.signOut();
@@ -34,6 +36,34 @@
       }
     };
 
+
+    useEffect(() => {
+      const fetchStatus = async () => {
+        const { data, error, count } = await supabase
+          .from('verification_requests')
+          .select('status')
+          .eq('user_id', user.id);
+      
+        if (error) {
+          console.error('Error fetching verification status:', error);
+          setStatus('Unverified'); // Set status to 'Unverified' if error occurs
+        } else {
+          if (count === 0) {
+            setStatus('Unverified'); // Handle case where no rows are returned
+          } else if (count > 1) {
+            console.warn('Multiple verification requests found for user. Using the first one.');
+            setStatus(data[0]?.status || 'Unverified'); // Handle multiple rows by picking the first
+          } else {
+            setStatus(data[0]?.status || 'Unverified'); // Handle a single row
+          }
+          console.log('Verification Status:', data[0]?.status); // Log to check if status is being updated
+        }
+      };
+    
+      fetchStatus();
+    }, []);
+    
+    
     useEffect(() => {
       setLoading(true); // Start loading when profile is being loaded
 
@@ -165,7 +195,7 @@
         ) : (
           <FlatList
             data={posts}
-            ListHeaderComponent={<UserHeader user={user} router={router} handleLogout={handleLogout} verificationStatus={verificationStatus} />}
+            ListHeaderComponent={<UserHeader user={user} router={router} handleLogout={handleLogout} verificationStatus={verificationStatus} status={status} />}
             ListHeaderComponentStyle={{ marginBottom: 30 }}
             showsVerticalScrollIndicator={false}
             contentContainerStyle={styles.listStyle}
@@ -191,7 +221,7 @@
   };
 
   // UserHeader component to display user information
-  const UserHeader = ({ user, router, handleLogout, verificationStatus }) => {
+  const UserHeader = ({ user, router, handleLogout, verificationStatus, status }) => {
     console.log('Verification Status in UserHeader:', verificationStatus);
 
     const onPressMenu = (menu) => {
@@ -205,13 +235,20 @@
         icon: 'add-circle',
         path: '/add-new-pet',
       },
-      {
+      { 
         id: 2,
         name: 'My Post',
         icon: 'bookmark',
         path: '/../user-post',
       },
     ];
+
+    const filteredMenu = Menu.filter((menuItem) => {
+      if (menuItem.id === 1 && status !== 'approved') {
+        return false; // Exclude "My Post" if user is not verified
+      }
+      return true; // Include other menu items
+    });
 
     const getStatusStyles = (status) => {
       switch (status) {
@@ -293,7 +330,7 @@
                       </View>
 
                       <FlatList
-                          data={Menu}
+                          data={filteredMenu}
                           renderItem={({ item, index }) => (
                               <TouchableOpacity
                                   onPress={() => onPressMenu(item)}
