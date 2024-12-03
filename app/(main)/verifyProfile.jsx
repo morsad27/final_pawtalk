@@ -25,10 +25,11 @@ export default function UploadVerificationDocs() {
 
   // Function to pick image from library
   const pickImage = async (setImage) => {
-    let result = await ImagePicker.launchImageLibraryAsync({
+    let result = await ImagePicker.launchCameraAsync({
       mediaTypes: ImagePicker.MediaTypeOptions.Images,
       allowsEditing: true,
       quality: 1,
+      cameraType: ImagePicker.CameraType.bacck, // Use the front camera
     });
 
     if (!result.canceled) {
@@ -172,7 +173,7 @@ export default function UploadVerificationDocs() {
           )}
         </TouchableOpacity>
         <Text style={styles.instructionText}>Ensure that your face is clearly visible.</Text>
-        <Text style={styles.instructionText}>Please wait for 5-10 minutes for the verification process.</Text>
+        <Text style={styles.instructionText}>Please wait for 5-10 minutes for the verification process. Please reload the application.</Text>
       </View>
 
       {/* Upload Button */}

@@ -1,11 +1,11 @@
-import { View, Text, FlatList, Button, Image, StyleSheet, TouchableOpacity } from 'react-native';
+import { View, Text, FlatList, Image, StyleSheet, TouchableOpacity } from 'react-native';
 import React, { useEffect, useState } from 'react';
 import { supabase } from '../../lib/supabase';
 import { getSupabaseFileUrl } from '../../services/imageService';
 
 const Verify = () => {
   const [requests, setRequests] = useState([]);
-  const [refreshing, setRefreshing] = useState(false); // New state for refreshing
+  const [refreshing, setRefreshing] = useState(false);
 
   // Fetch verification requests from Supabase
   const fetchRequests = async () => {
@@ -26,14 +26,14 @@ const Verify = () => {
   }, []);
 
   // Update status to 'approved'
-  const updateStatus = async (user_id) => {
+  const approveStatus = async (user_id) => {
     const { error } = await supabase
       .from('verification_requests')
       .update({ status: 'approved' })
       .eq('user_id', user_id);
     
     if (error) {
-      console.error('Error updating status:', error);
+      console.error('Error updating status to approved:', error);
     } else {
       setRequests((prevRequests) =>
         prevRequests.map((request) =>
@@ -45,18 +45,43 @@ const Verify = () => {
     }
   };
 
+  // Update status to 'declined'
+  const declineStatus = async (user_id) => {
+    const { error } = await supabase
+      .from('verification_requests')
+      .update({ status: 'declined' })
+      .eq('user_id', user_id);
+    
+    if (error) {
+      console.error('Error updating status to declined:', error);
+    } else {
+      setRequests((prevRequests) =>
+        prevRequests.map((request) =>
+          request.user_id === user_id
+            ? { ...request, status: 'declined' }
+            : request
+        )
+      );
+    }
+  };
+
   // Handle pull-to-refresh
   const handleRefresh = async () => {
-    setRefreshing(true); // Start refreshing
-    await fetchRequests(); // Fetch new data
-    setRefreshing(false); // Stop refreshing
+    setRefreshing(true);
+    await fetchRequests();
+    setRefreshing(false);
   };
+
+  // Filter requests to exclude 'approved' and 'declined' statuses
+  const filteredRequests = requests.filter(
+    (request) => request.status === 'pending'
+  );
 
   return (
     <View style={styles.container}>
       <Text style={styles.header}>Verification Requests</Text>
       <FlatList
-        data={requests}
+        data={filteredRequests}
         keyExtractor={(item) => item.user_id}
         renderItem={({ item }) => (
           <View style={styles.requestContainer}>
@@ -80,18 +105,25 @@ const Verify = () => {
 
             <Text style={styles.statusText}>Status: {item.status}</Text>
             
-            {item.status === 'pending' && (
+            <View style={styles.buttonGroup}>
               <TouchableOpacity
                 style={styles.approveButton}
-                onPress={() => updateStatus(item.user_id)}
+                onPress={() => approveStatus(item.user_id)}
               >
                 <Text style={styles.buttonText}>Approve</Text>
               </TouchableOpacity>
-            )}
+
+              <TouchableOpacity
+                style={styles.declineButton}
+                onPress={() => declineStatus(item.user_id)}
+              >
+                <Text style={styles.buttonText}>Decline</Text>
+              </TouchableOpacity>
+            </View>
           </View>
         )}
-        refreshing={refreshing} // Pass refreshing state to FlatList
-        onRefresh={handleRefresh} // Trigger refresh on pull-to-refresh
+        refreshing={refreshing}
+        onRefresh={handleRefresh}
       />
     </View>
   );
@@ -104,6 +136,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#f9f9f9',
   },
   header: {
+    paddingTop: 50,
     fontSize: 24,
     fontWeight: 'bold',
     marginBottom: 20,
@@ -145,10 +178,22 @@ const styles = StyleSheet.create({
     fontWeight: '500',
     marginBottom: 10,
   },
+  buttonGroup: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    gap: 10,
+  },
   approveButton: {
+    flex: 1,
     backgroundColor: '#4CAF50',
     paddingVertical: 12,
-    paddingHorizontal: 20,
+    borderRadius: 8,
+    alignItems: 'center',
+  },
+  declineButton: {
+    flex: 1,
+    backgroundColor: '#FF6347',
+    paddingVertical: 12,
     borderRadius: 8,
     alignItems: 'center',
   },

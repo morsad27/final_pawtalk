@@ -18,6 +18,34 @@ export default function PetDetails() {
     const router = useRouter();
     const [group, setGroup] = useState(null);
     const [adoptStatus, setAdoptStatus] = useState(pet.adoptstatus);
+    const [status, setStatus] = useState(null);
+
+
+    useEffect(() => {
+        const fetchStatus = async () => {
+            const { data, error, count } = await supabase
+              .from('verification_requests')
+              .select('status')
+              .eq('user_id', user.id);
+          
+            if (error) {
+              console.error('Error fetching verification status:', error);
+              setStatus('Unverified'); // Set status to 'Unverified' if error occurs
+            } else {
+              if (count === 0) {
+                setStatus('Unverified'); // Handle case where no rows are returned
+              } else if (count > 1) {
+                console.warn('Multiple verification requests found for user. Using the first one.');
+                setStatus(data[0]?.status || 'Unverified'); // Handle multiple rows by picking the first
+              } else {
+                setStatus(data[0]?.status || 'Unverified'); // Handle a single row
+              }
+              console.log('Verification Status:', data[0]?.status); // Log to check if status is being updated
+            }
+          };
+        
+          fetchStatus();
+        }, []);
 
     useEffect(() => {
         const fetchUserGroup = async () => {
@@ -157,7 +185,7 @@ export default function PetDetails() {
             </ScrollView>
 
             {/* Adopt button - Show only if the current user is NOT the owner */}
-            {!isOwner && (
+            {!isOwner && status === 'approved' && (
                 <View style={styles.bottomContainer}>
                     <TouchableOpacity onPress={handleInitiateChat} style={styles.adoptBtn}>
                         <Text style={styles.adoptText}>Adopt Me</Text>
