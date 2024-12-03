@@ -1,4 +1,4 @@
-# Welcome to PawTalk 👋
+# Welcome to PawTalk® 👋
 
 - [PawTalk](https://pawtalk.fun): Visit our website.
 
