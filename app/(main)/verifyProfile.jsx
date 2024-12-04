@@ -96,9 +96,9 @@ export default function UploadVerificationDocs() {
 
       // Update the user's verification status in the users table
       const { error: updateError } = await supabase
-        .from('users')
+        .from('verification_requests')
         .update({ status: 'pending' }) // Update verification status
-        .eq('id', user.id); // Ensure you're updating the correct user
+        .eq('user_id', user.id); // Ensure you're updating the correct user
 
       if (updateError) {
         console.error('Failed to update user verification status:', updateError.message);
@@ -110,9 +110,9 @@ export default function UploadVerificationDocs() {
 
       // Fetch the updated user data to reflect the new status
       const { data: updatedUser, error: fetchError } = await supabase
-        .from('users')
+        .from('verification_requests')
         .select('status') // Select the status field
-        .eq('id', user.id)
+        .eq('user_id', user.id)
         .single();
 
       if (fetchError) {
