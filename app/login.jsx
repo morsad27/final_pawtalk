@@ -49,20 +49,45 @@ const Login = () => {
   
     const userId = authUser.user.id; // Get the user's unique ID
   
-    // Step 3: Fetch the user's group from public.users
+    // Step 3: Fetch the user's group and banned status from public.users
     const { data: userData, error: userError } = await supabase
       .from('users')
-      .select('Group')
+      .select('Group, Banned_Status')
       .eq('id', userId) // Match based on the user's ID from auth.users
       .single();
   
     if (userError || !userData) {
-      Alert.alert('Error', 'Failed to fetch user group. Please try again.');
+      Alert.alert('Error', 'Failed to fetch user group or banned status. Please try again.');
       return;
     }
   
-      router.push('/(tabs)/home'); // Navigate to general user dashboard or any default page
     
+    if (userData.Banned_Status) {
+      
+      Alert.alert(
+        'Account Suspended',
+        'Your account is banned. Please contact support.',
+        [
+          {
+            text: 'OK',
+            onPress: async () => {
+              
+              await supabase.auth.signOut();
+              
+              router.push('/login');
+            },
+          },
+        ]
+      );
+      return;
+    } else {
+     
+      if (userData.Group === 'ADMIN') {
+        router.push('/(tabs)/documents'); 
+      } else {
+        router.push('/(tabs)/home'); 
+      }
+    }
   };
   
   

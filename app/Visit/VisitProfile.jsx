@@ -1,4 +1,4 @@
-import { View, Text, StyleSheet, FlatList, TouchableOpacity } from 'react-native';
+import { View, Text, StyleSheet, FlatList, TouchableOpacity, Alert } from 'react-native';
 import React, { useState, useEffect } from 'react';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import ScreenWrapper from '../../components/ScreenWrapper';
@@ -99,6 +99,85 @@ const VisitProfile = () => {
 };
 
 const UserHeader = ({ item, router, verificationStatus }) => {
+  const [group, setGroup] = useState(false);
+  const [isBanned, setIsBanned] = useState(false); // Track banned status
+
+  useEffect(() => {
+    fetchUserGroup();
+    fetchUserBanStatus(); // Fetch if user is banned
+  }, []);
+
+  const fetchUserGroup = async () => {
+    try {
+      const { data: authUser, error: authError } = await supabase.auth.getUser();
+
+      if (authError) {
+        console.error('Error fetching authenticated user:', authError);
+        return;
+      }
+
+      const userId = authUser.user.id;
+
+      const { data, error } = await supabase
+        .from('users')
+        .select('Group')
+        .eq('id', userId)
+        .single();
+
+      if (error) {
+        console.error('Error fetching user group:', error);
+      } else {
+        setGroup(data?.Group);
+      }
+    } catch (err) {
+      console.error('Unexpected error:', err);
+    }
+  };
+
+  const fetchUserBanStatus = async () => {
+    try {
+      const { data } = await supabase
+        .from('users')
+        .select('Banned_Status')
+        .eq('id', item.id)
+        .single();
+
+      if (data) {
+        setIsBanned(data.Banned_Status); // Update banned status
+      }
+    } catch (err) {
+      console.error('Error fetching banned status:', err);
+    }
+  };
+
+  const banUser = async () => {
+    const { data, error } = await supabase
+      .from('users')
+      .update({ Banned_Status: true })
+      .eq('id', item.id);
+
+    if (error) {
+      Alert.alert('Error', 'Unable to ban the user.');
+    } else {
+      Alert.alert('Success', 'User has been banned.');
+      setIsBanned(true); // Update UI to show the ban status
+    }
+  };
+
+  const unbanUser = async () => {
+    const { data, error } = await supabase
+      .from('users')
+      .update({ Banned_Status: false })
+      .eq('id', item.id);
+
+    if (error) {
+      Alert.alert('Error', 'Unable to unban the user.');
+    } else {
+      Alert.alert('Success', 'User has been unbanned.');
+      setIsBanned(false); // Update UI to show the unban status
+    }
+  };
+
   const onPressMenu = (menu) => {
     router.push({
       pathname: menu.path,
@@ -211,6 +290,26 @@ const UserHeader = ({ item, router, verificationStatus }) => {
                 </TouchableOpacity>
               )}
             />
+
+            {/* Ban Button */}
+            {group === 'ADMIN' && !isBanned && (
+              <TouchableOpacity
+                style={styles.banButton}
+                onPress={banUser}
+              >
+                <Text style={styles.banButtonText}>Ban User</Text>
+              </TouchableOpacity>
+            )}
+
+            {/* Unban Button */}
+            {group === 'ADMIN' && isBanned && (
+              <TouchableOpacity
+                style={styles.banButton}
+                onPress={unbanUser}
+              >
+                <Text style={styles.banButtonText}>Unban User</Text>
+              </TouchableOpacity>
+            )}
           </View>
         </View>
       </View>
@@ -228,4 +327,16 @@ const styles = StyleSheet.create({
   infoText: { fontSize: hp(1.6), fontWeight: '500', color: theme.colors.textLight },
   info: { flexDirection: 'row', alignItems: 'center', gap: 10 },
   noPosts: { fontSize: hp(2), textAlign: 'center', color: theme.colors.text },
+  banButton: {
+    backgroundColor: 'red',
+    padding: 10,
+    borderRadius: 10,
+    marginTop: 20,
+    alignItems: 'center',
+  },
+  banButtonText: {
+    color: 'white',
+    fontSize: 18,
+    fontWeight: '600',
+  },
 });
