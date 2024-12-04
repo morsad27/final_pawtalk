@@ -28,6 +28,7 @@ export default function ChatScreen() {
   const [selectedPet, setSelectedPet] = useState(null);
   const [selectedFile, setSelectedFile] = useState(null);
   const [isUploading, setIsUploading] = useState(false);
+  const [agreementStatus, setAgreementStatus] = useState(null);
   
 
 
@@ -254,21 +255,77 @@ export default function ChatScreen() {
     setIsTermsVisible(!isTermsVisible); 
   };
 
-  const handleAgreementChange = (newValue) => {
+  const handleAgreementChange = async (newValue) => {
     setIsAgreed(newValue); // Update isAgreed when checkbox is toggled
-    // console.log('Is Agreed:', newValue); // Log the value to check if it's updating
+    
+    if (newValue) {
+      // Update the 'Agree' column in the users table to true when checkbox is checked
+      const { data, error } = await supabase
+        .from('users')
+        .update({ Agree: true })
+        .eq('id', user.id); // Assuming user is logged in and you want to update the logged-in user
+  
+      if (error) {
+        console.error('Error updating Agree column:', error);
+      } else {
+        console.log('Agreement status updated:', data);
+      }
+    } else {
+      // Optionally, handle case for when checkbox is unchecked, if you want to update the database for that as well
+      const { data, error } = await supabase
+        .from('users')
+        .update({ Agree: null })
+        .eq('id', user.id);
+  
+      if (error) {
+        console.error('Error updating Agree column:', error);
+      } else {
+        console.log('Agreement status updated:', data);
+      }
+    }
   };
 
+  useEffect(() => {
+    const fetchAgreementStatus = async () => {
+      const { data, error } = await supabase
+        .from('users')
+        .select('Agree')
+        .eq('id', user.id)
+        .single();
+
+      if (error) {
+        console.error('Error fetching agreement status:', error);
+      } else {
+        setAgreementStatus(data?.Agree);
+      }
+    };
+
+    fetchAgreementStatus();
+  }, []);
+
+
+  
   return (
     <View style={{ flex: 1 }}>
-      <GiftedChat
-        messages={messages}
-        onSend={messages => onSend(messages)}
-        user={{
-          _id: user?.email,
-          name: user?.name,
-        }}
-      />
+      {agreementStatus === null ? (
+        <Text style={styles.agreementText}>Agree to the terms and conditions</Text> // Add styles to make sure it's visible
+      ) : (
+        <GiftedChat
+            messages={messages}
+            onSend={messages => onSend(messages)}
+            user={{
+              _id: user?.email,
+              name: user?.name,
+            }}
+            showUserAvatar={false} // Hide the user avatar
+            renderAvatar={() => null} // Ensure no avatar is rendered at all
+          />
+
+      )}
+
+
+
+  
       
       {otherUser && (
         <Pressable style={styles.termsContainer} onPress={toggleTermsVisibility}>
@@ -421,9 +478,16 @@ export default function ChatScreen() {
         </Pressable>
 
         <View style={styles.checkboxContainer}>
-          <CheckBox value={isAgreed} onValueChange={handleAgreementChange} />
-          <Text style={styles.checkboxText}>I agree to the Terms and Conditions</Text>
+          {agreementStatus === true ? ( // Check if Agree is TRUE
+            <Text style={styles.agreedText}>Agreed to the Terms and Conditions</Text> // Display this message if Agree is TRUE
+          ) : (
+            <>
+              <CheckBox value={isAgreed} onValueChange={handleAgreementChange} />
+              <Text style={styles.checkboxText}>I agree to the Terms and Conditions</Text>
+            </>
+          )}
         </View>
+
 
         <Pressable
           style={[styles.continueButton, { opacity: isAgreed ? 1 : 0.5 }]}
@@ -624,6 +688,17 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: '#555',
     marginBottom: 10,
+  },
+  agreementText: {
+    fontSize: 18,
+    color: 'black',  // Ensure the text color is visible
+    textAlign: 'center', // Center align the text
+    marginTop: 650, // Add some spacing at the top for better visibility
+  },
+  agreedText: {
+    fontSize: 16,
+    color: 'green',  // Optional: change color for better visibility
+    marginLeft: 10,
   },
   
   

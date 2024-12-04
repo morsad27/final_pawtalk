@@ -20,10 +20,12 @@ const Welcome = () => {
           source={require('../assets/images/front.png')}
         />
          {/* Title and Punchline */}
-         <View style={styles.textContainer}>
-          <Text style={styles.title}>Get Started!</Text>
-          <Text style={styles.punchLine}>Suntukan na lang oh!!!</Text>
-        </View>
+         <View>
+                <Text style={styles.title}>Get Started!</Text>
+                  <Text style={styles.punchLine}>
+                    "Adopting a pet is not just giving them a home. It's joining a community that believes in love, care, and second chances."
+                </Text>
+          </View>
         <View style={styles.footer}>
           <Button
           title="Get Started"
@@ -93,4 +95,19 @@ const styles = StyleSheet.create({
     color:theme.colors.text,
     fontSize: hp(1.6)
   },
+  textContainer: {
+    padding: 20,
+    marginHorizontal: 20,
+    backgroundColor: '#f9f9f9', // Light background for contrast
+    borderRadius: 10,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 5,
+    elevation: 5, // For Android shadow
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+
+  
 })
