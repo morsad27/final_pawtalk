@@ -102,7 +102,7 @@ const Login = () => {
         {/* Welcome */}
         <View>
           <Text style={styles.welcomeText}>Hey,</Text>
-          <Text style={styles.welcomeText}>Welcome bwaakk!</Text>
+          <Text style={styles.welcomeText}>Welcome bwaaakk!</Text>
         </View>
 
         {/* Form */}
