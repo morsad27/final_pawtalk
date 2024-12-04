@@ -90,7 +90,6 @@ const Login = () => {
     }
   };
   
-  //hello
   return (
     <ScreenWrapper bg="white">
       <StatusBar style='dark' />
@@ -103,7 +102,7 @@ const Login = () => {
         {/* Welcome */}
         <View>
           <Text style={styles.welcomeText}>Hey,</Text>
-          <Text style={styles.welcomeText}>Welcome back!</Text>
+          <Text style={styles.welcomeText}>Welcome bwaakk!</Text>
         </View>
 
         {/* Form */}
