@@ -48,7 +48,7 @@ const Login = () => {
     }
   
     const userId = authUser.user.id; // Get the user's unique ID
-  
+    
     // Step 3: Fetch the user's group and banned status from public.users
     const { data: userData, error: userError } = await supabase
       .from('users')
@@ -60,7 +60,7 @@ const Login = () => {
       Alert.alert('Error', 'Failed to fetch user group or banned status. Please try again.');
       return;
     }
-  
+    
     
     if (userData.Banned_Status) {
       
@@ -102,7 +102,7 @@ const Login = () => {
         {/* Welcome */}
         <View>
           <Text style={styles.welcomeText}>Hey,</Text>
-          <Text style={styles.welcomeText}>Welcome bwaaakk!</Text>
+          <Text style={styles.welcomeText}>Welcome baaackk!</Text>
         </View>
 
         {/* Form */}

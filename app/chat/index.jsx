@@ -413,56 +413,27 @@ export default function ChatScreen() {
       <ScrollView style={styles.modalContent}>
         <Text style={styles.termsHeading}>Terms and Conditions</Text>
         
-        <Text style={styles.termsSubheading}>1. Acceptance of Terms</Text>
+        <Text style={styles.termsSubheading}>1. Certification Requirement</Text>
         <Text style={styles.termsContent}>
-          By using PawTalk, you confirm that you are at least 18 years old or have the permission of a legal guardian. Continued use of the app constitutes agreement to these terms.
+           Both parties involved in pet adoption must sign and upload a notarized adoption certification document to finalize the process. 
         </Text>
 
-        <Text style={styles.termsSubheading}>2. User Responsibilities</Text>
+        <Text style={styles.termsSubheading}>2. Responsibility</Text>
         <Text style={styles.termsContent}>
-          • Account Registration: You are responsible for providing accurate and truthful information when registering.{"\n"}
-          • Security: Protect your account login credentials. You are solely responsible for activities under your account.{"\n"}
-          • Appropriate Use: Use the app for its intended purposes. Do not engage in illegal, abusive, or harmful behavior on the platform.
+        The adopter assumes full responsibility for the care, well-being, and humane treatment of the adopted pet.
         </Text>
 
-        <Text style={styles.termsSubheading}>3. Pet Adoption Process</Text>
+        <Text style={styles.termsSubheading}>3. Return Policy</Text>
         <Text style={styles.termsContent}>
-          • Certification Requirement: Both parties involved in pet adoption must sign and upload a notarized adoption certification document to finalize the process.{"\n"}
-          • Responsibility: The adopter assumes full responsibility for the care, well-being, and humane treatment of the adopted pet.{"\n"}
-          • Return Policy: If unable to care for the pet, the adopter must contact the previous owner or authorized parties.{"\n"}
-          • Fraud Prevention: Misrepresentation in the adoption process is strictly prohibited and may lead to account suspension or legal action.
+           If unable to care for the pet, the adopter must contact the previous owner or authorized parties.
         </Text>
 
-        <Text style={styles.termsSubheading}>4. Content and Community Guidelines</Text>
+        <Text style={styles.termsSubheading}>4. Fraud Prevention</Text>
         <Text style={styles.termsContent}>
-          • Language Filtering: To maintain a respectful community, the app uses a language filtering algorithm to monitor and restrict harmful or inappropriate content.{"\n"}
-          • Ownership of Content: You retain ownership of any content you post but grant PawTalk the right to use, display, or distribute it for promotional or operational purposes.{"\n"}
-          • Prohibited Content: Do not post content that is offensive, defamatory, harmful, or violates copyright laws.
+        Misrepresentation in the adoption process is strictly prohibited and may lead to account suspension or legal action.
         </Text>
-
-        <Text style={styles.termsSubheading}>5. Privacy Policy</Text>
-        <Text style={styles.termsContent}>
-          Your privacy is important to us. PawTalk collects and uses your data as outlined in our [Privacy Policy]. By using the app, you consent to data collection and usage in compliance with applicable laws.
-        </Text>
-
-        <Text style={styles.termsSubheading}>6. Limitations of Liability</Text>
-        <Text style={styles.termsContent}>
-          • PawTalk is not responsible for disputes or issues arising between users, including pet ownership conflicts.{"\n"}
-          • We do not guarantee uninterrupted access or the absence of errors in the app.{"\n"}
-          • To the extent permitted by law, PawTalk disclaims liability for damages resulting from the use or inability to use the app.
-        </Text>
-
-        <Text style={styles.termsSubheading}>7. Termination of Use</Text>
-        <Text style={styles.termsContent}>
-          PawTalk reserves the right to suspend or terminate your account if you violate these terms or engage in behavior detrimental to the community.
-        </Text>
-
-        <Text style={styles.termsSubheading}>8. Updates and Modifications</Text>
-        <Text style={styles.termsContent}>
-          We may update these terms periodically. Continued use of the app after changes constitutes acceptance of the revised terms.
-        </Text>
-
-        <Text style={styles.termsSubheading}>9. Contact Information</Text>
+        
+        <Text style={styles.termsSubheading}>Contact Information</Text>
         <Text style={styles.termsContent}>
           For questions or concerns about these terms, please contact us at:{"\n"}
           Email: support@pawtalkapp.com{"\n"}
